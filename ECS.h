@@ -11,21 +11,13 @@
 #include <queue>
 #include <bitset>
 
-/*
- * A simple, array-based ECS.
- * - Entity: Just an ID (uint32_t)
- * - Component: Plain C struct/class (e.g., TransformComponent)
- * - System: Class that operates on entities with specific components
- */
-
 namespace ecs {
 
     // --- Core Types ---
     using Entity = uint32_t;
-    const Entity MAX_ENTITIES = 5000;
+    constexpr Entity MAX_ENTITIES = 5000;
     using ComponentTypeID = uint8_t;
-    const ComponentTypeID MAX_COMPONENTS = 32;
-    // Signature: A bitset (one bit per component type)
+    constexpr ComponentTypeID MAX_COMPONENTS = 32;
     using Signature = std::bitset<MAX_COMPONENTS>;
 
 
@@ -60,7 +52,7 @@ namespace ecs {
             m_Signatures[entity] = signature;
         }
 
-        Signature GetSignature(Entity entity) {
+        Signature GetSignature(Entity entity) const {
             assert(entity < MAX_ENTITIES && "Entity out of range");
             return m_Signatures[entity];
         }
@@ -144,10 +136,11 @@ namespace ecs {
         }
 
         template<typename T>
-        ComponentTypeID GetComponentTypeID() {
+        ComponentTypeID GetComponentTypeID() const {
             const char* typeName = typeid(T).name();
             assert(m_ComponentTypes.find(typeName) != m_ComponentTypes.end() && "Component not registered");
-            return m_ComponentTypes[typeName];
+            // --- THIS IS THE FIX ---
+            return m_ComponentTypes.at(typeName); // Was []
         }
 
         template<typename T>
@@ -180,7 +173,8 @@ namespace ecs {
         std::shared_ptr<ComponentArray<T>> GetComponentArray() {
             const char* typeName = typeid(T).name();
             assert(m_ComponentTypes.find(typeName) != m_ComponentTypes.end() && "Component not registered");
-            return std::static_pointer_cast<ComponentArray<T>>(m_ComponentArrays[typeName]);
+            // --- THIS IS A FIX (but it was not const, so [] is okay) ---
+            return std::static_pointer_cast<ComponentArray<T>>(m_ComponentArrays.at(typeName));
         }
     };
 
@@ -210,15 +204,14 @@ namespace ecs {
         }
 
         template<typename T>
-        std::shared_ptr<T> GetSystem() {
+        std::shared_ptr<T> GetSystem() const { // 
             const char* typeName = typeid(T).name();
             assert(m_Systems.find(typeName) != m_Systems.end() && "System not registered");
-            return std::static_pointer_cast<T>(m_Systems[typeName]);
+            return std::static_pointer_cast<T>(m_Systems.at(typeName)); 
         }
 
-        // --- FUNCTION NAME IS 'SetSignature' ---
         template<typename T>
-        void SetSignature(Signature signature) {
+        void SetSignature(Signature signature)  {
             const char* typeName = typeid(T).name();
             assert(m_Systems.find(typeName) != m_Systems.end() && "System not registered");
             m_Signatures.insert({ typeName, signature });
@@ -239,7 +232,7 @@ namespace ecs {
                     continue;
                 }
 
-                auto const& systemSignature = m_Signatures[type];
+                auto const& systemSignature = m_Signatures.at(type);
 
                 if ((entitySignature & systemSignature) == systemSignature) {
                     system->m_Entities.insert(entity);
@@ -308,13 +301,15 @@ namespace ecs {
             m_SystemManager->EntitySignatureChanged(entity, signature);
         }
 
+        
+
         template<typename T>
         T& GetComponent(Entity entity) {
             return m_ComponentManager->GetComponent<T>(entity);
         }
 
         template<typename T>
-        ComponentTypeID GetComponentTypeID() {
+        ComponentTypeID GetComponentTypeID() const {
             return m_ComponentManager->GetComponentTypeID<T>();
         }
 
@@ -324,19 +319,15 @@ namespace ecs {
             return m_SystemManager->RegisterSystem<T>(this);
         }
 
-
         template<typename T>
-        std::shared_ptr<T> GetSystem() {
+        std::shared_ptr<T> GetSystem() const {
             return m_SystemManager->GetSystem<T>();
         }
 
-        // --- THIS IS THE FIX ---
-        // Registry::SetSystemSignature calls SystemManager::SetSignature
         template<typename T>
         void SetSystemSignature(Signature signature) {
             m_SystemManager->SetSignature<T>(signature);
         }
-        // --- END OF FIX ---
 
     private:
         std::unique_ptr<EntityManager> m_EntityManager;
@@ -344,4 +335,4 @@ namespace ecs {
         std::unique_ptr<SystemManager> m_SystemManager;
     };
 
-} // namespace ecs
+} 

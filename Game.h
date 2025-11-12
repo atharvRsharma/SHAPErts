@@ -8,7 +8,6 @@
 
 #include "Camera.h" 
 
-// Forward declarations
 namespace ecs {
     class Registry;
 }
@@ -21,7 +20,7 @@ public:
     Game(int width, int height, const std::string& title);
     ~Game();
 
-    // Non-copyable
+    //singleton
     Game(const Game&) = delete;
     Game& operator=(const Game&) = delete;
 
@@ -41,21 +40,19 @@ private:
     int m_Height;
     std::string m_Title;
 
-    // ECS
+    //ecs declaration
     std::unique_ptr<ecs::Registry> m_Registry;
 
-    // Systems
     std::shared_ptr<RenderSystem> m_RenderSystem;
     std::shared_ptr<UISystem> m_UISystem;
     std::shared_ptr<InputSystem> m_InputSystem;
 
-    // --- MOUSE STATE ---
     bool m_IsPanning = false;
-    bool m_IsOrbiting = false; // <-- RENAMED (was m_IsRotating)
+    bool m_IsOrbiting = false; 
     double m_LastMouseX = 0.0;
     double m_LastMouseY = 0.0;
 
-    // --- CALLBACKS ---
+    //callbacks
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
     static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);

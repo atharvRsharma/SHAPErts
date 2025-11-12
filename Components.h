@@ -6,6 +6,14 @@
 #include <vector>
 #include <string>
 
+// --- NEW MESH ENUM ---
+enum class MeshType {
+    None,
+    Quad,
+    Cube,
+    Unit_Soldier // Future: A complex, multi-part mesh
+};
+
 // --- Enum Definitions ---
 enum class BuildingType {
     Base,
@@ -14,23 +22,23 @@ enum class BuildingType {
 };
 
 // --- Component Structs ---
-// Note: These are Plain Old Data (POD) structs.
-// They contain *only* data, no logic.
-
-// Basic spatial component
 struct TransformComponent {
     glm::vec3 position = { 0.0f, 0.0f, 0.0f };
-    glm::vec2 scale = { 1.0f, 1.0f };
-    float rotation = 0.0f; // in radians
+    glm::vec3 scale = { 1.0f, 1.0f, 1.0f }; // --- VEC3 ---
+    glm::vec3 rotation = { 0.0f, 0.0f, 0.0f }; // --- VEC3 (Euler angles) ---
 };
 
-// Data needed for rendering
+// --- RENAMED: Just for color now ---
 struct RenderComponent {
     glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
-    // We could add shader ID, texture ID, mesh ID, etc.
 };
 
-// For entities that are part of the grid
+// --- NEW: Tells the renderer WHAT to draw ---
+struct MeshComponent {
+    MeshType type = MeshType::None;
+};
+
+// --- This is now a logical component, not a renderable one ---
 struct GridTileComponent {
     int x;
     int y;

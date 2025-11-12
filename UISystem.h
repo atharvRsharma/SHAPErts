@@ -10,7 +10,6 @@
 #include "RenderSystem.h"
 #include "InputSystem.h"
 
-// We need to forward-declare the other systems to get their info
 class RenderSystem;
 class InputSystem;
 
@@ -28,27 +27,24 @@ struct GameState {
 class UISystem : public ecs::System {
 public:
     void Init(ecs::Registry* registry) {
-        // Nothing special to init for ImGui itself,
-        // but we can set up our internal state
         m_State = GameState{};
     }
 
     void Update(float dt) {
-        // Update is called in the fixed simulation step.
-        // We can use it to gather data for the next render.
+        static double lastTime = glfwGetTime();
+        static int frames = 0;
+        double currentTime = glfwGetTime();
+        frames++;
 
-        // Calculate FPS
-        m_FrameCount++;
-        m_TimeAccumulator += dt;
-        if (m_TimeAccumulator >= 1.0f) {
-            m_State.fps = (float)m_FrameCount / m_TimeAccumulator;
-            m_TimeAccumulator = 0.0f;
-            m_FrameCount = 0;
+
+        if (currentTime - lastTime >= 1.0) { 
+            m_State.fps = (float)frames / (currentTime - lastTime);
+            frames = 0;
+            lastTime = currentTime;
         }
 
-        // Find the selected tile and update UI state
-        m_State.selectedTileInfo = "None"; // Default
-        // m_Entities is populated by the ECS with entities that match our signature
+
+        m_State.selectedTileInfo = "None"; 
         for (auto const& entity : m_Entities) {
             auto& selectable = m_Registry->GetComponent<SelectableComponent>(entity);
             if (selectable.isSelected) {
@@ -66,9 +62,6 @@ public:
     }
 
     void Render(ecs::Registry* registry) {
-        // This is called in the render step.
-        // We just draw ImGui windows.
-
         DrawMainHUD(registry);
         DrawDebugWindow(registry);
     }
@@ -76,12 +69,8 @@ public:
 private:
     GameState m_State;
 
-    // For FPS calculation
-    int m_FrameCount = 0;
-    float m_TimeAccumulator = 0.0f;
 
     void DrawMainHUD(ecs::Registry* registry) {
-        // Set a window position and size
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(300, 150), ImGuiCond_Always);
 
@@ -119,17 +108,14 @@ private:
             ImGui::Text("Living Entities (Total): %d", registry->GetLivingEntityCount());
 
             if (ImGui::CollapsingHeader("Systems")) {
-
-                // --- THIS IS THE FIX ---
-                // We must include the headers for these systems at the top
-                // of this file, or forward-declare them.
                 ImGui::Text("RenderSystem: %zu entities", m_Registry->GetSystem<RenderSystem>()->m_Entities.size());
                 ImGui::Text("UISystem: %zu entities", m_Registry->GetSystem<UISystem>()->m_Entities.size());
                 ImGui::Text("InputSystem: %zu entities", m_Registry->GetSystem<InputSystem>()->m_Entities.size());
-                // --- END OF FIX ---
+
 
             }
-            ImGui::End();
+            
         }
+        ImGui::End();
     }
 };

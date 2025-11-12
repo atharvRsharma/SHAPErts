@@ -7,17 +7,17 @@
 #include <algorithm>
 
 // --- NEW CAMERA CONSTANTS ---
-const float DEFAULT_YAW = glm::radians(45.0f);
+constexpr float DEFAULT_YAW = glm::radians(45.0f);
 
 // --- THIS IS THE FIX ---
-const float DEFAULT_PITCH = glm::radians(45.0f); // Was -45.0f
+constexpr float DEFAULT_PITCH = glm::radians(45.0f); // Was -45.0f
 // --- END OF FIX ---
 
-const float MIN_DISTANCE = 5.0f;
-const float MAX_DISTANCE = 40.0f;
-const float DEFAULT_DISTANCE = 20.0f;
-const float PAN_SPEED = 0.03f;
-const float ORBIT_SENSITIVITY = 0.005f;
+constexpr float MIN_DISTANCE = 5.0f;
+constexpr float MAX_DISTANCE = 40.0f;
+constexpr float DEFAULT_DISTANCE = 20.0f;
+constexpr float PAN_SPEED = 0.03f;
+constexpr float ORBIT_SENSITIVITY = 0.005f;
 
 
 class Camera
@@ -36,14 +36,12 @@ public:
     }
 
     // Returns the view matrix (looks *at* the target from our position)
-    glm::mat4 GetViewMatrix()
-    {
+    glm::mat4 GetViewMatrix() const {
         return glm::lookAt(m_Position, m_Target, m_WorldUp);
     }
 
     // Returns projection (FOV is now fixed, zoom is distance)
-    glm::mat4 GetProjectionMatrix(float aspectRatio)
-    {
+    glm::mat4 GetProjectionMatrix(float aspectRatio) const {
         return glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
     }
 

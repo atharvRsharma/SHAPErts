@@ -1,4 +1,3 @@
-// All elements are generic placeholders for testing purposes.
 #pragma once
 
 #include "Systems.h"
@@ -15,14 +14,15 @@
 
 class InputSystem : public ecs::System {
 public:
-    void Init(GLFWwindow* window, ecs::Registry* registry, int width, int height) {
+    void Init(GLFWwindow* window, ecs::Registry* registry) {
         m_Window = window;
-        // m_Registry is set by base class
+    }
+
+    void SetWindowSize(int width, int height) {
         m_Width = width;
         m_Height = height;
     }
 
-    // --- CHANGED: Now needs camera position ---
     void UpdateMatrices(const glm::mat4& projection, const glm::mat4& view, const glm::vec3& cameraPosition) {
         m_Projection = projection;
         m_View = view;
@@ -52,48 +52,44 @@ private:
     glm::mat4 m_View;
     glm::mat4 m_InvProjection;
     glm::mat4 m_InvView;
-    glm::vec3 m_CameraPosition; // --- NEW ---
-    int m_Width;
-    int m_Height;
+    glm::vec3 m_CameraPosition; 
+    int m_Width = 0;
+    int m_Height = 0;
     bool m_MousePressedLastFrame = false;
 
-    // --- NEW: Raycasting function ---
     glm::vec3 ScreenToWorldRay(double xpos, double ypos) {
-        // 1. Screen space to NDC
+        //ss to ndc
         float ndcX = (2.0f * (float)xpos) / (float)m_Width - 1.0f;
         float ndcY = 1.0f - (2.0f * (float)ypos) / (float)m_Height;
 
-        // 2. NDC to Clip space
-        glm::vec4 clipCoords(ndcX, ndcY, -1.0f, 1.0f); // -1.0f for "near"
+        //-> clip space
+        glm::vec4 clipCoords(ndcX, ndcY, -1.0f, 1.0f);
 
-        // 3. Clip space to View space
+        //-> view spc
         glm::vec4 eyeCoords = m_InvProjection * clipCoords;
         eyeCoords = glm::vec4(eyeCoords.x, eyeCoords.y, -1.0f, 0.0f);
 
-        // 4. View space to World space
+        //-> world spc
         glm::vec4 worldRay = m_InvView * eyeCoords;
 
         return glm::normalize(glm::vec3(worldRay));
     }
 
-    // --- NEW: Ray-Plane Intersection function ---
     std::optional<glm::vec3> IntersectRayWithPlane(const glm::vec3& rayOrigin, const glm::vec3& rayDirection, const glm::vec3& planeNormal, const glm::vec3& planePoint) {
         float denom = glm::dot(planeNormal, rayDirection);
 
-        // Check if ray is parallel to the plane
+        //is ray parallel to plane?
         if (std::abs(denom) > 1e-6) {
             float t = glm::dot(planePoint - rayOrigin, planeNormal) / denom;
             if (t >= 0) {
-                // Return intersection point
+                //instersection pt
                 return rayOrigin + rayDirection * t;
             }
         }
-        // No intersection
         return std::nullopt;
     }
 
 
-    // --- COMPLETELY REWRITTEN ---
     void HandleMouseClick() {
         double xpos, ypos;
         glfwGetCursorPos(m_Window, &xpos, &ypos);
@@ -108,46 +104,46 @@ private:
 
         std::optional<glm::vec3> intersection = IntersectRayWithPlane(rayOrigin, rayDirection, planeNormal, planePoint);
 
-        if (!intersection) {
-            // Mouse is not pointing at the grid plane
-            return;
-        }
-
-        glm::vec3 worldCoords = *intersection;
-
-        // 3. Find which tile was clicked using the 3D world coordinates
         ecs::Entity selectedEntity = ecs::MAX_ENTITIES;
+        int selectedX = 0;
+        int selectedY = 0;
 
-        for (auto const& entity : m_Entities) {
-            auto& transform = m_Registry->GetComponent<TransformComponent>(entity);
+        if (intersection) {
+            glm::vec3 worldCoords = *intersection;
 
-            float halfWidth = transform.scale.x / 2.0f;
-            float halfDepth = transform.scale.y / 2.0f; // Scale.y is our "depth"
+            // Convert world-space (e.g., -5.2f) to grid-space (e.g., 4)
+            // This is the reverse of the math in Game::Init
+            // It centers the coord, offsets by half-grid-size, and floors.
+            selectedX = static_cast<int>(std::floor(worldCoords.x + 10.0f));
+            selectedY = static_cast<int>(std::floor(worldCoords.z + 10.0f));
 
-            // AABB check on the XZ plane
-            if (worldCoords.x >= transform.position.x - halfWidth &&
-                worldCoords.x <= transform.position.x + halfWidth &&
-                worldCoords.z >= transform.position.z - halfDepth && // <-- Check Z, not Y
-                worldCoords.z <= transform.position.z + halfDepth)
-            {
+            // Now, find the "Highlighter" entity
+            for (auto const& entity : m_Entities) {
+                // This is a bit of a hack. We assume the InputSystem's
+                // signature only matches the one Highlighter entity.
+                // A better way would be a "HighlighterTag" component.
                 selectedEntity = entity;
                 break;
             }
         }
 
-        // 4. Update component state based on selection
-        for (auto const& entity : m_Entities) {
-            auto& selectable = m_Registry->GetComponent<SelectableComponent>(entity);
-            auto& render = m_Registry->GetComponent<RenderComponent>(entity);
+        // --- UPDATE HIGHLIGHTER ---
+        if (selectedEntity != ecs::MAX_ENTITIES) {
+            auto& transform = m_Registry->GetComponent<TransformComponent>(selectedEntity);
+            auto& render = m_Registry->GetComponent<RenderComponent>(selectedEntity);
 
-            if (entity == selectedEntity) {
-                selectable.isSelected = true;
-                render.color = { 1.0f, 1.0f, 0.0f, 1.0f }; // Yellow
+            // Check if click was on the grid
+            if (selectedX >= 0 && selectedX < 20 && selectedY >= 0 && selectedY < 20) {
+                // Snap highlighter to the center of the clicked tile
+                transform.position.x = (float)selectedX - 10.0f + 0.5f;
+                transform.position.z = (float)selectedY - 10.0f + 0.5f;
+                transform.position.y = 0.01f; // Slightly above grid
+                render.color = { 1.0f, 1.0f, 0.0f, 0.5f }; // Semi-transparent yellow
             }
             else {
-                selectable.isSelected = false;
-                render.color = { 0.2f, 0.2f, 0.2f, 1.0f }; // Dark grey
+                // Click was off-grid, hide the highlighter
+                render.color = { 0.0f, 0.0f, 0.0f, 0.0f }; // Invisible
             }
         }
-    };
+    }
 };
