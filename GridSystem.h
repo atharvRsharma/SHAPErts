@@ -3,6 +3,7 @@
 
 #include "Systems.h"
 #include <vector>
+#include <glm/glm.hpp>
 
 constexpr int GRID_WIDTH = 20;
 constexpr int GRID_HEIGHT = 20;
@@ -15,26 +16,30 @@ public:
     }
 
     bool IsTileOccupied(int x, int y) const {
-        if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
+        if (!IsValidTile(x, y)) {
             return true; // Out of bounds is "occupied"
         }
         return m_Occupied[x][y];
     }
 
     void SetTileOccupied(int x, int y, bool isOccupied) {
-        if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
-            return;
+        if (IsValidTile(x, y)) {
+            m_Occupied[x][y] = isOccupied;
         }
-        m_Occupied[x][y] = isOccupied;
     }
 
+    bool IsValidTile(int x, int y) const {
+        return !(x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT);
+    }
+
+    // Converts grid coordinates (e.g., 0,0) to world coordinates (e.g., -9.5, 0, -9.5)
     glm::vec3 GridToWorld(int x, int y) const {
-        // The reverse of the math in InputSystem
         float posX = (float)x - (float)GRID_WIDTH / 2.0f + 0.5f;
         float posZ = (float)y - (float)GRID_HEIGHT / 2.0f + 0.5f;
-        return { posX, 0.5f, posZ }; // 0.5f Y so cube sits on top
+        return { posX, 0.0f, posZ };
     }
 
+    // Converts world coordinates back to grid coordinates
     glm::ivec2 WorldToGrid(const glm::vec3& worldPos) const {
         int x = static_cast<int>(std::floor(worldPos.x + (float)GRID_WIDTH / 2.0f));
         int y = static_cast<int>(std::floor(worldPos.z + (float)GRID_HEIGHT / 2.0f));

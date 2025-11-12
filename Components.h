@@ -10,10 +10,12 @@ enum class MeshType {
     Quad,
     Cube,
     Pyramid,
+    Turret,
     Unit_Soldier
 };
 
 enum class BuildingType {
+    None,
     Base,
     ResourceNode,
     Turret
@@ -31,6 +33,10 @@ struct RenderComponent {
 
 struct MeshComponent {
     MeshType type = MeshType::None;
+};
+
+struct BuildingComponent {
+    BuildingType type = BuildingType::None;
 };
 
 struct GridTileComponent {
@@ -52,9 +58,6 @@ struct ResourceGeneratorComponent {
     float resourcesPerSecond = 1.0f;
 };
 
-struct BuildingComponent {
-    BuildingType type;
-};
 
 struct UnitComponent {
     float attackDamage = 10.0f;

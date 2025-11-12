@@ -59,8 +59,9 @@ public:
 
         try {
             m_Meshes[MeshType::Quad] = std::make_shared<Mesh>("plane.txt");
-            //m_Meshes[MeshType::Cube] = std::make_shared<Mesh>("cube.txt");
+            m_Meshes[MeshType::Cube] = std::make_shared<Mesh>("cube.txt");
             m_Meshes[MeshType::Pyramid] = std::make_shared<Mesh>("pyr - Copy.obj");
+            m_Meshes[MeshType::Turret] = std::make_shared<Mesh>("turret.obj");
         }
         catch (const std::exception& e) {
             std::cerr << "Failed to load meshes: " << e.what() << std::endl;

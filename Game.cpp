@@ -14,6 +14,9 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include "ResourceSystem.h"
+#include "GridSystem.h"
+
 // --- Callbacks ---
 
 void glfw_error_callback(int error, const char* description) {
@@ -41,10 +44,19 @@ void Game::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 void Game::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-    if (ImGui::GetIO().WantCaptureMouse) return;
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
-    if (!game || game->m_IsGodMode) return;
+    if (!game) return;
 
+    // --- NEW "Click-Away to Cancel" LOGIC ---
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS &&
+        ImGui::GetIO().WantCaptureMouse && game->m_InputSystem->IsInBuildMode())
+    {}
+
+    if (ImGui::GetIO().WantCaptureMouse) return; // All other UI clicks stop here
+
+    if (game->m_IsGodMode) return;
+
+    // --- (Pan/Orbit logic is unchanged) ---
     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
         if (action == GLFW_PRESS) {
             game->m_IsOrbiting = true;
@@ -71,10 +83,8 @@ void Game::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
     if (!game) return;
 
     float xoffset = static_cast<float>(xpos - game->m_LastMouseX);
-    float yoffset = static_cast<float>(game->m_LastMouseY - ypos); // y-offset is inverted
+    float yoffset = static_cast<float>(game->m_LastMouseY - ypos); 
 
-    // --- THIS IS THE FIX ---
-    // Only update m_LastMouse if we are actively dragging
     if (game->m_IsGodMode || game->m_IsOrbiting || game->m_IsPanning) {
         game->m_LastMouseX = xpos;
         game->m_LastMouseY = ypos;
@@ -110,19 +120,25 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
     }
 }
 
-// --- (Game Class) ---
-
 Game::Game(int width, int height, const std::string& title)
     : m_Window(nullptr), m_Width(width), m_Height(height), m_Title(title),
     m_OrbitCamera(glm::vec3(0.0f)),
-    m_FlyCamera(glm::vec3(0.0f, 15.0f, 15.0f))
+    m_FlyCamera(glm::vec3(0.0f, 15.0f, 15.0f)),
+    m_CurrentState(AppState::PLAYING)
 {
     Init();
 }
 
-Game::~Game() {
-    Cleanup();
+Game::~Game() { Cleanup(); }
+
+void Game::SetAppState(AppState newState) {
+    m_CurrentState = newState;
+    if (m_CurrentState == AppState::PLAYING) {
+        std::cout << "Base placed! Game is now PLAYING." << std::endl;
+    }
 }
+
+
 
 void Game::Init() {
     glfwSetErrorCallback(glfw_error_callback);
@@ -168,12 +184,15 @@ void Game::Init() {
     m_Registry->RegisterComponent<TransformComponent>();
     m_Registry->RegisterComponent<RenderComponent>();
     m_Registry->RegisterComponent<MeshComponent>();
+    m_Registry->RegisterComponent<BuildingComponent>();
     m_Registry->RegisterComponent<GridTileComponent>();
     m_Registry->RegisterComponent<SelectableComponent>();
 
     m_RenderSystem = m_Registry->RegisterSystem<RenderSystem>();
     m_UISystem = m_Registry->RegisterSystem<UISystem>();
     m_InputSystem = m_Registry->RegisterSystem<InputSystem>();
+    m_ResourceSystem = m_Registry->RegisterSystem<ResourceSystem>();
+    m_GridSystem = m_Registry->RegisterSystem<GridSystem>();
 
     ecs::Signature renderSig;
     renderSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
@@ -192,8 +211,10 @@ void Game::Init() {
 
     m_RenderSystem->Init();
     m_UISystem->Init(m_Registry.get());
-    m_InputSystem->Init(m_Window, m_Registry.get());
+    m_InputSystem->Init(m_Window, m_Registry.get(), this); 
     m_InputSystem->SetWindowSize(m_Width, m_Height);
+    m_ResourceSystem->Init(1000.0);
+    m_GridSystem->Init();
 
     auto grid = m_Registry->CreateEntity();
     m_Registry->AddComponent(grid, TransformComponent{ {0,0,0}, {20,1,20} });
@@ -206,10 +227,8 @@ void Game::Init() {
     m_Registry->AddComponent(highlighter, MeshComponent{ MeshType::Quad });
     m_Registry->AddComponent(highlighter, SelectableComponent{});
 
-    auto pyramid = m_Registry->CreateEntity();
-    m_Registry->AddComponent(pyramid, TransformComponent{ { -2.0f, 0.0f, -2.0f } });
-    m_Registry->AddComponent(pyramid, RenderComponent{ {0.8f, 0.8f, 0.2f, 1.0f} });
-    m_Registry->AddComponent(pyramid, MeshComponent{ MeshType::Pyramid });
+    //m_InputSystem->EnterBuildMode(MeshType::Pyramid);
+
 }
 
 void Game::ToggleGodMode()
@@ -220,19 +239,27 @@ void Game::ToggleGodMode()
     m_IsOrbiting = false;
 
     if (m_IsGodMode) {
+        // --- SAVE THE ORBIT CAM STATE ---
+        m_PreGodModeTarget = m_OrbitCamera.GetTarget();
+        m_PreGodModeDistance = m_OrbitCamera.GetDistance();
+
+        // Sync fly cam to orbit cam
         m_FlyCamera.Position = m_OrbitCamera.GetPosition();
 
         glm::vec3 direction = glm::normalize(m_OrbitCamera.GetTarget() - m_OrbitCamera.GetPosition());
         m_FlyCamera.Yaw = glm::degrees(atan2(direction.z, direction.x));
         m_FlyCamera.Pitch = glm::degrees(asin(direction.y));
-        m_FlyCamera.updateCameraVectors(); // Force update
+        m_FlyCamera.updateCameraVectors();
 
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         glfwGetCursorPos(m_Window, &m_LastMouseX, &m_LastMouseY);
         std::cout << "GOD MODE: ACTIVATED" << std::endl;
     }
     else {
-        m_OrbitCamera.SyncFrom(m_FlyCamera);
+        // --- RESTORE THE ORBIT CAM STATE ---
+        m_OrbitCamera.SetTarget(m_PreGodModeTarget);
+        m_OrbitCamera.SetDistance(m_PreGodModeDistance);
+
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         std::cout << "GOD MODE: DEACTIVATED" << std::endl;
     }
@@ -253,17 +280,25 @@ void Game::Run() {
 
         ProcessInput((float)frameTime);
 
-        while (accumulator >= dt) {
-            m_UISystem->Update((float)dt);
+        switch (m_CurrentState) {
+        //case AppState::BASE_PLACEMENT: // <-- RENAMED
+        case AppState::PLAYING:        // <-- RENAMED
+        {
+            while (accumulator >= dt) {
+                m_ResourceSystem->Update((float)dt);
+                m_UISystem->Update((float)dt);
 
-            if (!m_IsGodMode) {
-                m_InputSystem->Update();
+                if (!m_IsGodMode) {
+                    m_InputSystem->Update();
+                }
+
+                accumulator -= dt;
+                t += dt;
             }
-
-            accumulator -= dt;
-            t += dt;
+            Render();
+            break;
         }
-        Render();
+        }
     }
 }
 

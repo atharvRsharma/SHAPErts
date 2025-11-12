@@ -2,17 +2,18 @@
 #pragma once
 
 #include "Systems.h"
+#include <iostream>
 
 class ResourceSystem : public ecs::System {
 public:
-    void Init() {
-        m_CurrentResources = 1000.0;
+    void Init(double startingResources = 1000.0) {
+        m_CurrentResources = startingResources;
     }
 
-    // We'll call this from the main game loop
     void Update(float dt) {
-        // TODO: Add resource generation logic
-        // m_CurrentResources += m_IncomePerSecond * dt;
+        // Later, we'll find all ResourceGenerator components
+        // and add to this value.
+        // For now, it just holds the value.
     }
 
     double GetResources() const {
@@ -22,9 +23,14 @@ public:
     bool SpendResources(double amount) {
         if (m_CurrentResources >= amount) {
             m_CurrentResources -= amount;
+            std::cout << "Spent " << amount << ", " << m_CurrentResources << " remaining." << std::endl;
             return true; // Success
         }
         return false; // Not enough resources
+    }
+
+    void AddResources(double amount) {
+        m_CurrentResources += amount;
     }
 
 private:
