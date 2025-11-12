@@ -204,7 +204,7 @@ namespace ecs {
         }
 
         template<typename T>
-        std::shared_ptr<T> GetSystem() const { // 
+        std::shared_ptr<T> GetSystem() const { 
             const char* typeName = typeid(T).name();
             assert(m_Systems.find(typeName) != m_Systems.end() && "System not registered");
             return std::static_pointer_cast<T>(m_Systems.at(typeName)); 

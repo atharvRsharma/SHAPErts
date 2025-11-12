@@ -1,23 +1,18 @@
-# Simple flat ground plane (2x2 units)
-# Centered at origin, facing +Y
+# A simple quad on the XZ plane
+v 0.5 0.0 0.5
+v 0.5 0.0 -0.5
+v -0.5 0.0 -0.5
+v -0.5 0.0 0.5
 
-o Plane
-
-# Vertices (X Y Z)
-v -1.0 0.0 -1.0
-v  1.0 0.0 -1.0
-v  1.0 0.0  1.0
-v -1.0 0.0  1.0
-
-# Texture coordinates (U V)
-vt 0.0 0.0
-vt 1.0 0.0
 vt 1.0 1.0
+vt 1.0 0.0
+vt 0.0 0.0
 vt 0.0 1.0
 
-# Normal (all pointing up)
+vn 0.0 1.0 0.0
+vn 0.0 1.0 0.0
+vn 0.0 1.0 0.0
 vn 0.0 1.0 0.0
 
-# Faces (v/vt/vn)
-f 1/1/1 2/2/1 3/3/1
-f 1/1/1 3/3/1 4/4/1
+f 1/1/1 2/2/2 4/4/4
+f 2/2/2 3/3/3 4/4/4

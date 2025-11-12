@@ -1,28 +1,21 @@
-// All elements are generic placeholders for testing purposes.
 #pragma once
 
 #include "Systems.h"
 #include "ECS.h"
-#include "Components.h" // Include components to read their data
+#include "Components.h" 
 #include "imgui.h"
 #include <string>
 
 #include "RenderSystem.h"
 #include "InputSystem.h"
+#include "Game.h" // <-- Need this to get God Mode state
 
-class RenderSystem;
-class InputSystem;
-
-// A simple struct to hold global game state for the UI
 struct GameState {
     float resources = 1000.0f;
     int unitCount = 0;
-    float lightEnergy = 0.5f; // Range 0.0 to 1.0
-    float shadowEnergy = 0.5f; // Range 0.0 to 1.0
     std::string selectedTileInfo = "None";
     float fps = 0.0f;
 };
-
 
 class UISystem : public ecs::System {
 public:
@@ -31,34 +24,24 @@ public:
     }
 
     void Update(float dt) {
-        static double lastTime = glfwGetTime();
-        static int frames = 0;
-        double currentTime = glfwGetTime();
-        frames++;
-
-
-        if (currentTime - lastTime >= 1.0) { 
-            m_State.fps = (float)frames / (currentTime - lastTime);
-            frames = 0;
-            lastTime = currentTime;
+        // --- Calculate FPS ---
+        m_FrameCount++;
+        m_TimeAccumulator += dt;
+        if (m_TimeAccumulator >= 1.0f) {
+            m_State.fps = (float)m_FrameCount / m_TimeAccumulator;
+            m_TimeAccumulator = 0.0f;
+            m_FrameCount = 0;
         }
 
-
-        m_State.selectedTileInfo = "None"; 
-        for (auto const& entity : m_Entities) {
-            auto& selectable = m_Registry->GetComponent<SelectableComponent>(entity);
-            if (selectable.isSelected) {
-                auto& tile = m_Registry->GetComponent<GridTileComponent>(entity);
-                m_State.selectedTileInfo = "Tile (" + std::to_string(tile.x) + ", " + std::to_string(tile.y) + ")";
-                break; // Found it, stop searching
-            }
+        // --- Get Selected Tile ---
+        auto inputSystem = m_Registry->GetSystem<InputSystem>();
+        glm::ivec2 coords = inputSystem->GetSelectedGridCoords();
+        if (coords.x != -1) {
+            m_State.selectedTileInfo = "Tile (" + std::to_string(coords.x) + ", " + std::to_string(coords.y) + ")";
         }
-
-        // TODO: Update other state variables
-        // m_State.resources = ...
-        // m_State.unitCount = ...
-        // m_State.lightEnergy = ...
-        // m_State.shadowEnergy = ...
+        else {
+            m_State.selectedTileInfo = "None";
+        }
     }
 
     void Render(ecs::Registry* registry) {
@@ -68,7 +51,8 @@ public:
 
 private:
     GameState m_State;
-
+    int m_FrameCount = 0;
+    float m_TimeAccumulator = 0.0f;
 
     void DrawMainHUD(ecs::Registry* registry) {
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
@@ -82,21 +66,9 @@ private:
             ImGui::Separator();
             ImGui::Text("Selected: %s", m_State.selectedTileInfo.c_str());
 
-            // --- Energy Meter ---
             ImGui::Text("Energy Balance");
-            // Calculate total balance from -1.0 (max shadow) to +1.0 (max light)
-            float balance = m_State.lightEnergy - m_State.shadowEnergy;
-            // Map to 0.0 - 1.0 for the progress bar
-            float progress = (balance + 1.0f) / 2.0f;
-
-            // Custom colored progress bar
-            ImVec4 barColor = ImVec4(0.0f, 0.5f, 1.0f, 1.0f); // Blue
-            if (balance < 0) {
-                barColor = ImVec4(1.0f, 0.5f, 0.0f, 1.0f); // Orange
-            }
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
-            ImGui::ProgressBar(progress, ImVec2(-1.0f, 0.0f));
-            ImGui::PopStyleColor();
+            float progress = 0.5f;
+            ImGui::ProgressBar(progress, ImVec2(-1.0f, 0.0f), "50%");
 
             ImGui::End();
         }
@@ -107,14 +79,21 @@ private:
             ImGui::Text("Entities (UI System): %zu", m_Entities.size());
             ImGui::Text("Living Entities (Total): %d", registry->GetLivingEntityCount());
 
+            // --- NEW: Get Game to read camera state ---
+            // This is a safe way to get the Game pointer
+            Game* game = static_cast<Game*>(glfwGetWindowUserPointer(m_Registry->GetSystem<InputSystem>()->m_Window));
+            if (game) {
+                ImGui::Text("God Mode: %s", game->m_IsGodMode ? "ON" : "OFF");
+                glm::vec3 camPos = game->m_IsGodMode ? game->m_FlyCamera.Position : game->m_OrbitCamera.GetPosition();
+                ImGui::Text("Camera Pos: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z);
+            }
+
             if (ImGui::CollapsingHeader("Systems")) {
                 ImGui::Text("RenderSystem: %zu entities", m_Registry->GetSystem<RenderSystem>()->m_Entities.size());
                 ImGui::Text("UISystem: %zu entities", m_Registry->GetSystem<UISystem>()->m_Entities.size());
                 ImGui::Text("InputSystem: %zu entities", m_Registry->GetSystem<InputSystem>()->m_Entities.size());
-
-
             }
-            
+           
         }
         ImGui::End();
     }
