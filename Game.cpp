@@ -17,7 +17,9 @@
 #include "ResourceSystem.h"
 #include "GridSystem.h"
 
-// --- Callbacks ---
+#include "MovementSystem.h"
+#include "EnemyAISystem.h"
+
 
 void glfw_error_callback(int error, const char* description) {
     std::cerr << "GLFW Error (" << error << "): " << description << std::endl;
@@ -33,14 +35,6 @@ void Game::framebuffer_size_callback(GLFWwindow* window, int width, int height) 
     }
 }
 
-//void Game::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-//{
-//    if (ImGui::GetIO().WantCaptureMouse) return;
-//    Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
-//    if (game && !game->m_IsGodMode) {
-//        game->m_OrbitCamera.ProcessMouseScroll(static_cast<float>(yoffset));
-//    }
-//}
 
 void Game::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
@@ -163,6 +157,36 @@ void Game::SetAppState(AppState newState) {
 
 
 
+void Game::OnBasePlaced(glm::vec3 position) {
+    m_BasePlaced = true;
+    m_BasePosition = position;
+    std::cout << "Base placed at: " << position.x << "," << position.y << "," << position.z << std::endl;
+}
+
+void Game::SpawnEnemyAt(glm::vec3 position) {
+    if (!m_BasePlaced) return; // Can't spawn until base is placed
+
+    std::cout << "Spawning enemy at: " << position.x << "," << position.y << "," << position.z << std::endl;
+
+    auto enemy = m_Registry->CreateEntity();
+    m_Registry->AddComponent(enemy, TransformComponent{
+        position,
+        {1.0f, 1.0f, 1.0f},
+        {0.0f, 0.0f, 0.0f}
+        });
+    m_Registry->AddComponent(enemy, RenderComponent{ {0.8f, 0.2f, 0.8f, 1.0f} }); // Purple
+    m_Registry->AddComponent(enemy, MeshComponent{ MeshType::Cube }); // Placeholder
+    m_Registry->AddComponent(enemy, HealthComponent{ 50.0f, 50.0f });
+    m_Registry->AddComponent(enemy, EnemyComponent{});
+    m_Registry->AddComponent(enemy, MovementComponent{
+        position, // Target (will be updated by AI)
+        3.0f,     // Speed
+        false     // isMoving
+        });
+}
+
+
+
 void Game::Init() {
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) return;
@@ -212,15 +236,17 @@ void Game::Init() {
     m_Registry->RegisterComponent<GridTileComponent>();
     m_Registry->RegisterComponent<SelectableComponent>();
     m_Registry->RegisterComponent<ResourceGeneratorComponent>();
-    m_Registry->RegisterComponent<UnitComponent>();
     m_Registry->RegisterComponent<HealthComponent>();
     m_Registry->RegisterComponent<MovementComponent>();
+    m_Registry->RegisterComponent<EnemyComponent>();
 
     m_RenderSystem = m_Registry->RegisterSystem<RenderSystem>();
     m_UISystem = m_Registry->RegisterSystem<UISystem>();
     m_InputSystem = m_Registry->RegisterSystem<InputSystem>();
     m_ResourceSystem = m_Registry->RegisterSystem<ResourceSystem>();
     m_GridSystem = m_Registry->RegisterSystem<GridSystem>();
+    m_MovementSystem = m_Registry->RegisterSystem<MovementSystem>();
+    m_EnemyAISystem = m_Registry->RegisterSystem<EnemyAISystem>();
 
     ecs::Signature renderSig;
     renderSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
@@ -241,6 +267,16 @@ void Game::Init() {
     ecs::Signature resourceSig;
     resourceSig.set(m_Registry->GetComponentTypeID<ResourceGeneratorComponent>());
     m_Registry->SetSystemSignature<ResourceSystem>(resourceSig);
+
+    ecs::Signature moveSig;
+    moveSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
+    moveSig.set(m_Registry->GetComponentTypeID<MovementComponent>());
+    m_Registry->SetSystemSignature<MovementSystem>(moveSig);
+
+    ecs::Signature aiSig;
+    aiSig.set(m_Registry->GetComponentTypeID<EnemyComponent>());
+    aiSig.set(m_Registry->GetComponentTypeID<MovementComponent>());
+    m_Registry->SetSystemSignature<EnemyAISystem>(aiSig);
 
     m_RenderSystem->Init();
     m_UISystem->Init(m_Registry.get());
@@ -289,7 +325,6 @@ void Game::ToggleGodMode()
         std::cout << "GOD MODE: ACTIVATED" << std::endl;
     }
     else {
-        // --- RESTORE THE ORBIT CAM STATE ---
         m_OrbitCamera.SetTarget(m_PreGodModeTarget);
         m_OrbitCamera.SetDistance(m_PreGodModeDistance);
 
@@ -323,7 +358,10 @@ void Game::Run() {
                     if (!m_IsGodMode) {
                         m_InputSystem->Update();
                     }
-
+                    if (m_BasePlaced) { // Only run AI if base exists
+                        m_EnemyAISystem->Update((float)dt, m_BasePosition);
+                    }
+                    m_MovementSystem->Update((float)dt);
                     accumulator -= dt;
                     t += dt;
                 }

@@ -79,18 +79,24 @@ void InputSystem::ExitBuildMode() {
     std::cout << "Exiting build mode." << std::endl;
 }
 
+// --- THIS IS THE 4-WAY ROTATION LOGIC ---
 void InputSystem::RotateBuildFootprint(int direction) {
-    m_BuildRotation = (m_BuildRotation + 1) % 2; // 0 or 1
+    if (direction == 0) return;
+    int delta = (direction > 0) ? 1 : -1; // +1 for scroll up, -1 for scroll down
 
-    if (m_BuildRotation == 0) {
-        // 0 degrees
+    // support 4 orientations: 0, 1, 2, 3 (0, 90, 180, 270 deg)
+    m_BuildRotation = (m_BuildRotation + delta + 4) % 4;
+
+    // For rotations 0 and 2 (0, 180 deg), use base footprint
+    // For rotations 1 and 3 (90, 270 deg), use swapped footprint
+    if ((m_BuildRotation % 2) == 0) {
         m_BuildFootprint = m_BaseFootprint;
     }
     else {
-        // 90 degrees
         m_BuildFootprint = { m_BaseFootprint.y, m_BaseFootprint.x };
     }
 }
+// --- END OF FIX ---
 
 std::optional<ecs::Entity> InputSystem::GetHighlighter() {
     for (auto const& entity : m_Entities) {
@@ -159,26 +165,26 @@ void InputSystem::UpdateHighlighter() {
             if (!m_LastPlacementValid) break;
         }
 
+        // --- THIS IS THE ROTATION FIX ---
+        // Scale is based on the *footprint*
         transform.scale = glm::vec3(m_BuildFootprint.x, 1.0f, m_BuildFootprint.y);
-        transform.rotation = { 0.0f, (m_BuildRotation == 1) ? 90.0f : 0.0f, 0.0f };
+        // Rotation is based on the *logical rotation value*
+        float angleDegrees = static_cast<float>(m_BuildRotation) * 90.0f;
+        transform.rotation = { 0.0f, angleDegrees, 0.0f };
+        // --- END OF FIX ---
 
         glm::vec3 worldPos = gridSystem->GridToWorld(anchorGridPos.x, anchorGridPos.y);
 
-        // --- THIS IS THE FIX ---
-        // Calculate the correct Y position (the "offset")
-        float yOffset = 0.01f; // 0.01f to hover just above the grid
+        float yOffset = 0.01f;
         if (m_BuildMeshType == MeshType::Cube || m_BuildMeshType == MeshType::Turret || m_BuildMeshType == MeshType::Sphere) {
-            // For centered objects (like cube), offset by half-height
-            yOffset += 0.5f; // Assumes a 1-unit-high model
+            yOffset = 0.5f;
         }
-        // For the pyramid, the offset is just 0.01f (its base is already at y=0)
 
         transform.position = {
             worldPos.x + (m_BuildFootprint.x / 2.0f) - 0.5f,
-            yOffset, // <-- USE THE CALCULATED OFFSET
+            yOffset,
             worldPos.z + (m_BuildFootprint.y / 2.0f) - 0.5f
         };
-        // --- END OF FIX ---
 
         render.color = m_LastPlacementValid ?
             glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) : // Green
@@ -209,18 +215,17 @@ void InputSystem::HandleMouseClick() {
 
                 auto building = m_Registry->CreateEntity();
 
-                // --- THIS IS THE CORRECT LOGIC (which you said works) ---
                 float yOffset = 0.0f;
                 if (m_BuildMeshType == MeshType::Cube || m_BuildMeshType == MeshType::Turret || m_BuildMeshType == MeshType::Sphere) {
-                    yOffset = 0.5f; // Assumes 1-unit-high model
+                    yOffset = 0.5f;
                 }
+                glm::vec3 buildPos = { h_transform.position.x, yOffset, h_transform.position.z };
 
                 m_Registry->AddComponent(building, TransformComponent{
-                    {h_transform.position.x, yOffset, h_transform.position.z},
+                    buildPos,
                     h_transform.scale,
-                    h_transform.rotation
+                    h_transform.rotation // <-- This now correctly copies the {0, 90, 180, 270} rotation
                     });
-                // --- END OF LOGIC ---
 
                 glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
                 if (m_BuildBuildingType == BuildingType::ResourceNode) {
@@ -235,14 +240,14 @@ void InputSystem::HandleMouseClick() {
                     m_Registry->AddComponent(building, ResourceGeneratorComponent{});
                 }
 
+                if (m_BuildBuildingType == BuildingType::Base) {
+                    m_Game->OnBasePlaced(buildPos);
+                }
+
                 for (int x = 0; x < m_BuildFootprint.x; ++x) {
                     for (int z = 0; z < m_BuildFootprint.y; ++z) {
                         gridSystem->SetTileOccupied(anchorGridPos.x + x, anchorGridPos.y + z, true);
                     }
-                }
-
-                if (m_BuildBuildingType == BuildingType::Base) {
-                    m_Game->OnBasePlaced();
                 }
                 ExitBuildMode();
             }

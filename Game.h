@@ -16,6 +16,8 @@ class UISystem;
 class InputSystem;
 class ResourceSystem;
 class GridSystem;
+class MovementSystem; // <-- NEW
+class EnemyAISystem;  // <-- NEW
 
 enum class AppState {
     PLAYING
@@ -30,16 +32,22 @@ public:
     Game& operator=(const Game&) = delete;
 
     void Run();
-
+    
     OrbitCamera m_OrbitCamera;
     FlyCamera m_FlyCamera;
     bool m_IsGodMode = false;
     GLFWwindow* m_Window;
 
     bool m_BasePlaced = false;
-    void OnBasePlaced() { m_BasePlaced = true; }
+    
+    // --- UPDATED: Takes position ---
+    void OnBasePlaced(glm::vec3 position);
+    glm::vec3 GetBasePosition() const { return m_BasePosition; }
 
     void SetAppState(AppState newState);
+
+    // --- NEW: Public function for UI to call ---
+    void SpawnEnemyAt(glm::vec3 position);
 
 private:
     void Init();
@@ -55,18 +63,24 @@ private:
 
     std::unique_ptr<ecs::Registry> m_Registry;
 
+    // --- Systems ---
     std::shared_ptr<RenderSystem> m_RenderSystem;
     std::shared_ptr<UISystem> m_UISystem;
-    std::shared_ptr<InputSystem> m_InputSystem;
+    std::shared_ptr<InputSystem> m_InputSystem; 
     std::shared_ptr<ResourceSystem> m_ResourceSystem;
     std::shared_ptr<GridSystem> m_GridSystem;
+    std::shared_ptr<MovementSystem> m_MovementSystem; // <-- NEW
+    std::shared_ptr<EnemyAISystem> m_EnemyAISystem;   // <-- NEW
+    
+    // --- NEW: Store base position ---
+    glm::vec3 m_BasePosition = {0,0,0};
 
+    // --- Mouse State ---
     bool m_IsPanning = false;
-    bool m_IsOrbiting = false;
+    bool m_IsOrbiting = false; 
     double m_LastMouseX = 0.0;
     double m_LastMouseY = 0.0;
 
-    
     glm::vec3 m_PreGodModeTarget;
     float m_PreGodModeDistance;
 
@@ -80,7 +94,6 @@ private:
     GLFW_KEY_LEFT,
     GLFW_KEY_RIGHT
     };
-
     std::vector<int> m_KeyCodeBuffer;
 
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);

@@ -12,13 +12,13 @@
  // --- Future Systems (Declarations only) ---
 
  // Updates entity positions based on MovementComponent
-class MovementSystem : public ecs::System {
-public:
-    void Update(float dt);
-};
-
-// Handles combat logic
-class CombatSystem : public ecs::System {
-public:
-    void Update(float dt);
-};
+//class MovementSystem : public ecs::System {
+//public:
+//    void Update(float dt);
+//};
+//
+//// Handles combat logic
+//class CombatSystem : public ecs::System {
+//public:
+//    void Update(float dt);
+//};

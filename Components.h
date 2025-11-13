@@ -19,7 +19,8 @@ enum class BuildingType {
     Base,
     ResourceNode,
     Turret,
-    Bomb
+    Bomb,
+    Enemy
 };
 
 struct TransformComponent {
@@ -50,10 +51,6 @@ struct SelectableComponent {
     bool isSelected = false;
 };
 
-struct HealthComponent {
-    float currentHP = 100.0f;
-    float maxHP = 100.0f;
-};
 
 struct GhostComponent {};
 
@@ -61,17 +58,15 @@ struct ResourceGeneratorComponent {
     float resourcesPerSecond = 1.0f;
 };
 
-
-struct UnitComponent {
-    float attackDamage = 10.0f;
-    float attackRadius = 2.0f;
-    float attackSpeed = 1.0f; // attacks per second
-    float timeSinceLastAttack = 0.0f;
+struct HealthComponent {
+    float currentHP = 100.0f;
+    float maxHP = 100.0f;
 };
 
+struct EnemyComponent {};
+
 struct MovementComponent {
-    glm::vec2 targetPosition;
-    std::vector<glm::vec2> path;
-    float speed = 2.0f; // units per second
+    glm::vec3 targetPosition;
+    float speed = 2.0f;
     bool isMoving = false;
 };

@@ -61,6 +61,7 @@ public:
         DrawMainHUD(registry);
         DrawDebugWindow(registry);
         DrawBuildMenu(registry);
+        
     }
 
 private:
@@ -95,17 +96,25 @@ private:
                 ImGui::Text("God Mode: %s", game->m_IsGodMode ? "ON" : "OFF");
                 glm::vec3 camPos = game->m_IsGodMode ? game->m_FlyCamera.Position : game->m_OrbitCamera.GetPosition();
                 ImGui::Text("Camera Pos: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z);
+
+                ImGui::Separator();
+                if (ImGui::Button("Spawn Enemy")) {
+                    game->SpawnEnemyAt({ 10.0f, 0.5f, 10.0f });
+                }
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Spawns 1 enemy at (10, 10)");
             }
 
             if (ImGui::CollapsingHeader("Systems")) {
                 ImGui::Text("RenderSystem: %zu entities", m_Registry->GetSystem<RenderSystem>()->m_Entities.size());
                 ImGui::Text("UISystem: %zu entities", m_Registry->GetSystem<UISystem>()->m_Entities.size());
                 ImGui::Text("InputSystem: %zu entities", m_Registry->GetSystem<InputSystem>()->m_Entities.size());
+
             }
             
         }
         ImGui::End();
     }
+
 
     void DrawBuildMenu(ecs::Registry* registry) {
         ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 210, 10), ImGuiCond_Always);
@@ -203,4 +212,5 @@ private:
 
         ImGui::End();
     }
+
 };

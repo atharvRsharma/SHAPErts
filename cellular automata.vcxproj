@@ -165,6 +165,8 @@
     <ClCompile Include="stb.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EnemyAISystem.h" />
+    <ClInclude Include="MovementSystem.h" />
     <ClInclude Include="OrbitCamera.h" />
     <ClInclude Include="Components.h" />
     <ClInclude Include="ECS.h" />
@@ -183,6 +185,7 @@
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="InputSystem.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Pathfinder.h" />
     <ClInclude Include="Primitives.h" />
     <ClInclude Include="RenderSystem.h" />
     <ClInclude Include="ResourceSystem.h" />

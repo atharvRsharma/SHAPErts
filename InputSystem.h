@@ -47,17 +47,17 @@ private:
     bool m_MousePressedLastFrame = false;
     int m_SelectedGridX = -1, m_SelectedGridY = -1;
 
-    // --- UPDATED: Build mode state ---
     InputMode m_CurrentMode = InputMode::SELECT;
-    MeshType m_BuildMeshType = MeshType::None; // <-- The mesh of the ghost
+    MeshType m_BuildMeshType = MeshType::None;
     BuildingType m_BuildBuildingType = BuildingType::None;
     double m_BuildCost = 0.0;
     glm::ivec2 m_BaseFootprint = { 1, 1 };
     glm::ivec2 m_BuildFootprint = { 1, 1 };
+
+    // --- FIX: This is now 0, 1, 2, or 3 ---
     int m_BuildRotation = 0;
     bool m_LastPlacementValid = false;
 
-    // --- (Function prototypes are the same) ---
     glm::vec3 ScreenToWorldRay(double xpos, double ypos);
     std::optional<glm::vec3> IntersectRayWithPlane(const glm::vec3& rayOrigin, const glm::vec3& rayDirection);
     std::optional<ecs::Entity> GetHighlighter();

@@ -134,6 +134,15 @@
     <ClInclude Include="FlyCamera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MovementSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EnemyAISystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Pathfinder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="simple.vert">
