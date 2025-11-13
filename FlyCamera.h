@@ -4,7 +4,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-// Defines several possible options for camera movement.
 enum class FlyCam_Movement {
     FORWARD,
     BACKWARD,
@@ -14,7 +13,6 @@ enum class FlyCam_Movement {
     DOWN
 };
 
-// Default camera values
 const float FLY_YAW = -90.0f;
 const float FLY_PITCH = 0.0f;
 const float FLY_SPEED = 10.0f;
@@ -23,16 +21,16 @@ const float FLY_SENSITIVITY = 0.1f;
 class FlyCamera
 {
 public:
-    // Camera Attributes
     glm::vec3 Position;
     glm::vec3 Front;
     glm::vec3 Up;
     glm::vec3 Right;
     glm::vec3 WorldUp;
-    // Euler Angles
+
+    //euler angles
     float Yaw;
     float Pitch;
-    // Camera options
+
     float MovementSpeed;
     float MouseSensitivity;
 
@@ -46,13 +44,11 @@ public:
         updateCameraVectors();
     }
 
-    // Returns the view matrix
     glm::mat4 GetViewMatrix() const
     {
         return glm::lookAt(Position, Position + Front, Up);
     }
 
-    // Processes keyboard input
     void ProcessKeyboard(FlyCam_Movement direction, float deltaTime)
     {
         float velocity = MovementSpeed * deltaTime;
@@ -70,7 +66,6 @@ public:
             Position -= WorldUp * velocity;
     }
 
-    // Processes mouse movement for looking around
     void ProcessMouseLook(float xoffset, float yoffset, bool constrainPitch = true)
     {
         Yaw += xoffset * MouseSensitivity;

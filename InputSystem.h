@@ -33,10 +33,11 @@ public:
 
     glm::ivec2 GetSelectedGridCoords() const;
 
-    // --- UPDATED: Now takes cost and type ---
-    void EnterBuildMode(MeshType meshType, BuildingType buildType, double cost);
+    void EnterBuildMode(BuildingType buildType, MeshType meshType, double cost, glm::ivec2 footprint);
     void ExitBuildMode();
     bool IsInBuildMode() const { return m_CurrentMode == InputMode::BUILD; }
+
+    void RotateBuildFootprint(int direction);
 
 private:
     Game* m_Game;
@@ -48,9 +49,12 @@ private:
 
     // --- UPDATED: Build mode state ---
     InputMode m_CurrentMode = InputMode::SELECT;
-    MeshType m_BuildMeshType = MeshType::None;
-    BuildingType m_BuildBuildingType = BuildingType::None; // <-- NEW
-    double m_BuildCost = 0.0;                              // <-- NEW
+    MeshType m_BuildMeshType = MeshType::None; // <-- The mesh of the ghost
+    BuildingType m_BuildBuildingType = BuildingType::None;
+    double m_BuildCost = 0.0;
+    glm::ivec2 m_BaseFootprint = { 1, 1 };
+    glm::ivec2 m_BuildFootprint = { 1, 1 };
+    int m_BuildRotation = 0;
     bool m_LastPlacementValid = false;
 
     // --- (Function prototypes are the same) ---

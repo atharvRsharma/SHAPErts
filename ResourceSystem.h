@@ -1,7 +1,9 @@
 // All elements are generic placeholders for testing purposes.
 #pragma once
 
-#include "Systems.h"
+
+#include "ECS.h" 
+#include "Components.h"
 #include <iostream>
 
 class ResourceSystem : public ecs::System {
@@ -11,9 +13,10 @@ public:
     }
 
     void Update(float dt) {
-        // Later, we'll find all ResourceGenerator components
-        // and add to this value.
-        // For now, it just holds the value.
+        for (auto const& entity : m_Entities) {
+            auto& generator = m_Registry->GetComponent<ResourceGeneratorComponent>(entity);
+            m_CurrentResources += generator.resourcesPerSecond * dt;
+        }
     }
 
     double GetResources() const {
@@ -24,14 +27,11 @@ public:
         if (m_CurrentResources >= amount) {
             m_CurrentResources -= amount;
             std::cout << "Spent " << amount << ", " << m_CurrentResources << " remaining." << std::endl;
-            return true; // Success
+            return true; 
         }
-        return false; // Not enough resources
+        return false; 
     }
 
-    void AddResources(double amount) {
-        m_CurrentResources += amount;
-    }
 
 private:
     double m_CurrentResources = 0.0;

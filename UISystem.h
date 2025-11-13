@@ -5,22 +5,23 @@
 #include "Components.h" 
 #include "imgui.h"
 #include <string>
+#include <GLFW/glfw3.h> // For FPS counter
 
 #include "RenderSystem.h"
 #include "InputSystem.h"
 #include "Game.h"
 #include "ResourceSystem.h"
 
-// --- Define build costs ---
 const double BASE_COST = 100.0;
 const double TURRET_COST = 150.0;
 const double NODE_COST = 50.0;
+const double BOMB_COST = 70.0;
 
 struct UIState {
     double resources = 0.0;
     int unitCount = 0;
     std::string selectedTileInfo = "None";
-    float fps = 0.0f;
+    double fps = 0.0;
 };
 
 class UISystem : public ecs::System {
@@ -30,13 +31,15 @@ public:
     }
 
     void Update(float dt) {
-        // --- Calculate FPS ---
-        m_FrameCount++;
-        m_TimeAccumulator += dt;
-        if (m_TimeAccumulator >= 1.0f) {
-            m_State.fps = (float)m_FrameCount / m_TimeAccumulator;
-            m_TimeAccumulator = 0.0f;
-            m_FrameCount = 0;
+        // --- FPS Counter ---
+        static double lastTime = glfwGetTime();
+        static int frames = 0;
+        double currentTime = glfwGetTime();
+        frames++;
+        if (currentTime - lastTime >= 1.0) {
+            m_State.fps = (double)frames / (currentTime - lastTime);
+            frames = 0;
+            lastTime = currentTime;
         }
 
         // --- Get Selected Tile ---
@@ -62,10 +65,8 @@ public:
 
 private:
     UIState m_State;
-    int m_FrameCount = 0;
-    float m_TimeAccumulator = 0.0f;
+    // (Removed old FPS counters)
 
-    // --- MAIN HUD (BACK AGAIN) ---
     void DrawMainHUD(ecs::Registry* registry) {
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(300, 150), ImGuiCond_Always);
@@ -84,7 +85,6 @@ private:
         }
     }
 
-    // --- DEBUG WINDOW (BACK AGAIN) ---
     void DrawDebugWindow(ecs::Registry* registry) {
         if (ImGui::Begin("Debug Info")) {
             ImGui::Text("Entities (UI System): %zu", m_Entities.size());
@@ -102,11 +102,11 @@ private:
                 ImGui::Text("UISystem: %zu entities", m_Registry->GetSystem<UISystem>()->m_Entities.size());
                 ImGui::Text("InputSystem: %zu entities", m_Registry->GetSystem<InputSystem>()->m_Entities.size());
             }
-            ImGui::End();
+            
         }
+        ImGui::End();
     }
 
-    // --- BUILD MENU ---
     void DrawBuildMenu(ecs::Registry* registry) {
         ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 210, 10), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(200, 300), ImGuiCond_Always);
@@ -123,15 +123,15 @@ private:
 
         if (inputSystem->IsInBuildMode() &&
             ImGui::GetIO().MouseClicked[0] &&
-            !ImGui::IsWindowHovered())
+            !ImGui::IsWindowHovered()) 
         {
             inputSystem->ExitBuildMode();
         }
 
 
-        // If we're in build mode, just show a cancel button
         if (inputSystem->IsInBuildMode()) {
             ImGui::Text("Placing building...");
+            ImGui::Text("Scroll wheel to rotate.");
             ImGui::Separator();
             if (ImGui::Button("Cancel")) {
                 inputSystem->ExitBuildMode();
@@ -140,7 +140,6 @@ private:
             return;
         }
 
-        // --- Category: Base ---
         if (ImGui::CollapsingHeader("Base", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (game->m_BasePlaced) {
                 ImGui::Text("Home Base placed.");
@@ -150,27 +149,31 @@ private:
                 if (!canAfford) ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 
                 if (ImGui::Button("Home Base [100]", ImVec2(-1, 0)) && canAfford) {
-                    inputSystem->EnterBuildMode(MeshType::Pyramid, BuildingType::Base, BASE_COST);
+                    inputSystem->EnterBuildMode(BuildingType::Base, MeshType::Pyramid, BASE_COST, { 2, 2 });
                 }
 
                 if (!canAfford) ImGui::PopStyleVar();
             }
         }
 
-        // --- Category: Defense ---
-        if (ImGui::CollapsingHeader("Defense", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("defense", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (!game->m_BasePlaced) {
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
                 ImGui::Button("Turret [150]", ImVec2(-1, 0));
+                ImGui::Button("Bomb [70]", ImVec2(-1, 0));
                 ImGui::PopStyleVar();
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Place Home Base first!");
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("home base has to be placed first");
             }
             else {
                 bool canAfford = currentResources >= TURRET_COST;
                 if (!canAfford) ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 
                 if (ImGui::Button("Turret [150]", ImVec2(-1, 0)) && canAfford) {
-                    inputSystem->EnterBuildMode(MeshType::Turret, BuildingType::Turret, TURRET_COST);
+                    inputSystem->EnterBuildMode(BuildingType::Turret, MeshType::Turret, TURRET_COST, { 1, 1 });
+                }
+
+                if (ImGui::Button("Bomb [70]", ImVec2(-1, 0)) && canAfford) {
+                    inputSystem->EnterBuildMode(BuildingType::Bomb, MeshType::Sphere, BOMB_COST, { 1, 1 });
                 }
 
                 if (!canAfford) ImGui::PopStyleVar();
@@ -189,8 +192,9 @@ private:
                 bool canAfford = currentResources >= NODE_COST;
                 if (!canAfford) ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 
+                // --- FIX: Correct arguments ---
                 if (ImGui::Button("Node [50]", ImVec2(-1, 0)) && canAfford) {
-                    inputSystem->EnterBuildMode(MeshType::Cube, BuildingType::ResourceNode, NODE_COST);
+                    inputSystem->EnterBuildMode(BuildingType::ResourceNode, MeshType::Cube, NODE_COST, { 1, 1 });
                 }
 
                 if (!canAfford) ImGui::PopStyleVar();

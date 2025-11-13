@@ -5,8 +5,8 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-constexpr int GRID_WIDTH = 20;
-constexpr int GRID_HEIGHT = 20;
+constexpr int GRID_WIDTH = 30;
+constexpr int GRID_HEIGHT = 30;
 
 class GridSystem : public ecs::System {
 public:
@@ -32,7 +32,7 @@ public:
         return !(x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT);
     }
 
-    // Converts grid coordinates (e.g., 0,0) to world coordinates (e.g., -9.5, 0, -9.5)
+    //convert 2d gird coords to world space coords, on an xyz axis system
     glm::vec3 GridToWorld(int x, int y) const {
         float posX = (float)x - (float)GRID_WIDTH / 2.0f + 0.5f;
         float posZ = (float)y - (float)GRID_HEIGHT / 2.0f + 0.5f;

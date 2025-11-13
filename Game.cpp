@@ -33,14 +33,32 @@ void Game::framebuffer_size_callback(GLFWwindow* window, int width, int height) 
     }
 }
 
+//void Game::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+//{
+//    if (ImGui::GetIO().WantCaptureMouse) return;
+//    Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
+//    if (game && !game->m_IsGodMode) {
+//        game->m_OrbitCamera.ProcessMouseScroll(static_cast<float>(yoffset));
+//    }
+//}
+
 void Game::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    if (ImGui::GetIO().WantCaptureMouse) return;
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
-    if (game && !game->m_IsGodMode) {
-        game->m_OrbitCamera.ProcessMouseScroll(static_cast<float>(yoffset));
+    if (ImGui::GetIO().WantCaptureMouse || !game) return;
+
+    if (game->m_IsGodMode) return; // No scroll in God Mode
+
+    // --- OLD LOGIC: Scroll to Rotate ---
+    if (game->m_InputSystem->IsInBuildMode()) {
+        // yoffset is +1 or -1. Pass it to the input system.
+        game->m_InputSystem->RotateBuildFootprint(yoffset > 0 ? 1 : -1);
+    }
+    else {
+        game->m_OrbitCamera.ProcessMouseScroll(static_cast<float>(yoffset)); // Normal zoom
     }
 }
+
 
 void Game::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
@@ -56,7 +74,7 @@ void Game::mouse_button_callback(GLFWwindow* window, int button, int action, int
 
     if (game->m_IsGodMode) return;
 
-    // --- (Pan/Orbit logic is unchanged) ---
+    // --- (Pan/Orbit logic is unchanged) 
     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
         if (action == GLFW_PRESS) {
             game->m_IsOrbiting = true;
@@ -115,9 +133,14 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
         game->m_KeyCodeBuffer.erase(game->m_KeyCodeBuffer.begin());
     }
 
+    /*for (int k : game->m_KeyCodeBuffer) {
+        std::cout << (char)k << " ";
+    }
+    std::cout << "\n";*/
     if (game->m_KeyCodeBuffer == game->m_GodModeCode) {
         game->ToggleGodMode();
     }
+
 }
 
 Game::Game(int width, int height, const std::string& title)
@@ -185,8 +208,13 @@ void Game::Init() {
     m_Registry->RegisterComponent<RenderComponent>();
     m_Registry->RegisterComponent<MeshComponent>();
     m_Registry->RegisterComponent<BuildingComponent>();
+    m_Registry->RegisterComponent<GhostComponent>();
     m_Registry->RegisterComponent<GridTileComponent>();
     m_Registry->RegisterComponent<SelectableComponent>();
+    m_Registry->RegisterComponent<ResourceGeneratorComponent>();
+    m_Registry->RegisterComponent<UnitComponent>();
+    m_Registry->RegisterComponent<HealthComponent>();
+    m_Registry->RegisterComponent<MovementComponent>();
 
     m_RenderSystem = m_Registry->RegisterSystem<RenderSystem>();
     m_UISystem = m_Registry->RegisterSystem<UISystem>();
@@ -203,11 +231,16 @@ void Game::Init() {
     ecs::Signature inputSig;
     inputSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
     inputSig.set(m_Registry->GetComponentTypeID<RenderComponent>());
-    inputSig.set(m_Registry->GetComponentTypeID<SelectableComponent>());
+    inputSig.set(m_Registry->GetComponentTypeID<MeshComponent>());
+    inputSig.set(m_Registry->GetComponentTypeID<GhostComponent>()); // <-- GHOST TAG
     m_Registry->SetSystemSignature<InputSystem>(inputSig);
 
     ecs::Signature uiSig;
     m_Registry->SetSystemSignature<UISystem>(uiSig);
+
+    ecs::Signature resourceSig;
+    resourceSig.set(m_Registry->GetComponentTypeID<ResourceGeneratorComponent>());
+    m_Registry->SetSystemSignature<ResourceSystem>(resourceSig);
 
     m_RenderSystem->Init();
     m_UISystem->Init(m_Registry.get());
@@ -221,13 +254,14 @@ void Game::Init() {
     m_Registry->AddComponent(grid, RenderComponent{ {0.2f, 0.2f, 0.2f, 1.0f} });
     m_Registry->AddComponent(grid, MeshComponent{ MeshType::Quad });
 
+
     auto highlighter = m_Registry->CreateEntity();
     m_Registry->AddComponent(highlighter, TransformComponent{ {0.5f, 0.01f, 0.5f} });
-    m_Registry->AddComponent(highlighter, RenderComponent{ {0,0,0,0} });
-    m_Registry->AddComponent(highlighter, MeshComponent{ MeshType::Quad });
-    m_Registry->AddComponent(highlighter, SelectableComponent{});
+    m_Registry->AddComponent(highlighter, RenderComponent{ {0,0,0,0} }); //color set by input system
+    m_Registry->AddComponent(highlighter, MeshComponent{ MeshType::None }); //mesh set by input system
+    m_Registry->AddComponent(highlighter, GhostComponent{});
 
-    //m_InputSystem->EnterBuildMode(MeshType::Pyramid);
+
 
 }
 
@@ -239,7 +273,6 @@ void Game::ToggleGodMode()
     m_IsOrbiting = false;
 
     if (m_IsGodMode) {
-        // --- SAVE THE ORBIT CAM STATE ---
         m_PreGodModeTarget = m_OrbitCamera.GetTarget();
         m_PreGodModeDistance = m_OrbitCamera.GetDistance();
 
@@ -280,24 +313,23 @@ void Game::Run() {
 
         ProcessInput((float)frameTime);
 
-        switch (m_CurrentState) {
-        //case AppState::BASE_PLACEMENT: // <-- RENAMED
-        case AppState::PLAYING:        // <-- RENAMED
-        {
-            while (accumulator >= dt) {
-                m_ResourceSystem->Update((float)dt);
-                m_UISystem->Update((float)dt);
+        switch (m_CurrentState) {      
+            case AppState::PLAYING:        
+            {
+                while (accumulator >= dt) {
+                    m_ResourceSystem->Update((float)dt);
+                    m_UISystem->Update((float)dt);
 
-                if (!m_IsGodMode) {
-                    m_InputSystem->Update();
+                    if (!m_IsGodMode) {
+                        m_InputSystem->Update();
+                    }
+
+                    accumulator -= dt;
+                    t += dt;
                 }
-
-                accumulator -= dt;
-                t += dt;
+                Render();
+                break;
             }
-            Render();
-            break;
-        }
         }
     }
 }
@@ -319,14 +351,14 @@ void Game::ProcessInput(float dt)
             m_FlyCamera.ProcessKeyboard(FlyCam_Movement::LEFT, dt);
         if (glfwGetKey(m_Window, GLFW_KEY_D) == GLFW_PRESS)
             m_FlyCamera.ProcessKeyboard(FlyCam_Movement::RIGHT, dt);
-        if (glfwGetKey(m_Window, GLFW_KEY_E) == GLFW_PRESS)
+        if (glfwGetKey(m_Window, GLFW_KEY_SPACE) == GLFW_PRESS)
             m_FlyCamera.ProcessKeyboard(FlyCam_Movement::UP, dt);
-        if (glfwGetKey(m_Window, GLFW_KEY_Q) == GLFW_PRESS)
+        if (glfwGetKey(m_Window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
             m_FlyCamera.ProcessKeyboard(FlyCam_Movement::DOWN, dt);
     }
 }
 
-void Game::Update(float dt) { /* (not used) */ }
+void Game::Update(float dt) {  }
 
 void Game::Render() {
     ImGui_ImplOpenGL3_NewFrame();
@@ -335,6 +367,7 @@ void Game::Render() {
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
 
     glm::mat4 projection = m_IsGodMode ?
         glm::perspective(glm::radians(45.0f), (float)m_Width / (float)m_Height, 0.1f, 100.0f) :

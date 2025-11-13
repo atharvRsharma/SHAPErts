@@ -66,11 +66,21 @@ private:
     double m_LastMouseX = 0.0;
     double m_LastMouseY = 0.0;
 
-    // --- NEW: Camera state for restore ---
+    
     glm::vec3 m_PreGodModeTarget;
     float m_PreGodModeDistance;
 
-    const std::vector<int> m_GodModeCode = { GLFW_KEY_F, GLFW_KEY_C, GLFW_KEY_V };
+    const std::vector<int> m_GodModeCode = {
+    GLFW_KEY_UP,
+    GLFW_KEY_UP,
+    GLFW_KEY_DOWN,
+    GLFW_KEY_DOWN,
+    GLFW_KEY_LEFT,
+    GLFW_KEY_RIGHT,
+    GLFW_KEY_LEFT,
+    GLFW_KEY_RIGHT
+    };
+
     std::vector<int> m_KeyCodeBuffer;
 
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);

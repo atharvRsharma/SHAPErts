@@ -6,7 +6,6 @@
 #include <algorithm>
 #include "FlyCamera.h" 
 
-// Default camera values
 const float DEFAULT_YAW = glm::radians(45.0f);
 const float DEFAULT_PITCH = glm::radians(45.0f);
 const float MIN_DISTANCE = 5.0f;
@@ -42,7 +41,7 @@ public:
 
     glm::vec3 GetPosition() const { return m_Position; }
 
-    // --- NEW GETTERS/SETTERS FOR SAVE/RESTORE ---
+    //getters setters for restoring orbitcam back to last valid pos before freecam
     glm::vec3 GetTarget() const { return m_Target; }
     float GetDistance() const { return m_Distance; }
 
@@ -54,12 +53,11 @@ public:
         m_Distance = distance;
         updateCameraPosition();
     }
-    // --- END NEW GETTERS/SETTERS ---
 
     void ProcessMousePan(float xoffset, float yoffset)
     {
         glm::vec3 panRight = glm::normalize(glm::vec3(cos(m_Yaw), 0.0f, -sin(m_Yaw)));
-        glm::vec3 panForward = glm::normalize(glm::vec3(sin(m_Yaw), 0.0f, cos(m_Yaw)));
+        glm::vec3 panForward = -glm::normalize(glm::vec3(sin(m_Yaw), 0.0f, cos(m_Yaw)));
         float distanceFactor = m_Distance / MAX_DISTANCE;
         m_Target -= panRight * xoffset * m_PanSpeed * distanceFactor;
         m_Target -= panForward * yoffset * m_PanSpeed * distanceFactor;
@@ -87,7 +85,6 @@ private:
         m_Position.y = m_Target.y + m_Distance * sin(m_Pitch);
     }
 
-    // Members
     glm::vec3 m_Position;
     glm::vec3 m_Target;
     glm::vec3 m_WorldUp;

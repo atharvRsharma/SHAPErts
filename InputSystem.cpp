@@ -1,8 +1,9 @@
 #include "InputSystem.h"
 #include "GridSystem.h"
-#include "ResourceSystem.h" 
+#include "ResourceSystem.h"
 #include "Game.h" 
 #include <iostream>
+#include <algorithm> // For std::swap
 
 // --- Definitions for the functions in InputSystem.h ---
 
@@ -20,8 +21,9 @@ void InputSystem::UpdateMatrices(const glm::mat4& projection, const glm::mat4& v
 }
 
 void InputSystem::Update() {
-    if (ImGui::GetIO().WantCaptureMouse) {
-        m_MousePressedLastFrame = false;
+    // If any UI window is hovered, we don't check for clicks or update highlighter
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+        m_MousePressedLastFrame = false; // Prevent click carry-over
         return;
     }
 
@@ -30,11 +32,9 @@ void InputSystem::Update() {
     }
 
     bool mousePressed = glfwGetMouseButton(m_Window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-
     if (mousePressed && !m_MousePressedLastFrame) {
         HandleMouseClick();
     }
-
     m_MousePressedLastFrame = mousePressed;
 }
 
@@ -42,18 +42,25 @@ glm::ivec2 InputSystem::GetSelectedGridCoords() const {
     return { m_SelectedGridX, m_SelectedGridY };
 }
 
-void InputSystem::EnterBuildMode(MeshType meshType, BuildingType buildType, double cost) {
+void InputSystem::EnterBuildMode(BuildingType buildType, MeshType meshType, double cost, glm::ivec2 footprint) {
     m_CurrentMode = InputMode::BUILD;
-    m_BuildMeshType = meshType;
     m_BuildBuildingType = buildType;
+    m_BuildMeshType = meshType;
     m_BuildCost = cost;
+    m_BaseFootprint = footprint;
+    m_BuildFootprint = footprint;
+    m_BuildRotation = 0;
+
+    auto highlighter = GetHighlighter();
+    if (highlighter) {
+        m_Registry->GetComponent<MeshComponent>(*highlighter).type = m_BuildMeshType;
+    }
     std::cout << "Entering build mode." << std::endl;
 }
 
 void InputSystem::ExitBuildMode() {
     m_CurrentMode = InputMode::SELECT;
     m_BuildCost = 0.0;
-    m_BuildMeshType = MeshType::None;
     m_BuildBuildingType = BuildingType::None;
     m_SelectedGridX = -1;
     m_SelectedGridY = -1;
@@ -61,9 +68,28 @@ void InputSystem::ExitBuildMode() {
     auto highlighter = GetHighlighter();
     if (highlighter) {
         auto& render = m_Registry->GetComponent<RenderComponent>(*highlighter);
+        auto& transform = m_Registry->GetComponent<TransformComponent>(*highlighter);
+        auto& mesh = m_Registry->GetComponent<MeshComponent>(*highlighter);
+
         render.color.a = 0.0f; // Invisible
+        transform.scale = { 1,1,1 };
+        transform.rotation = { 0,0,0 };
+        mesh.type = MeshType::None; // <-- Hide the mesh
     }
     std::cout << "Exiting build mode." << std::endl;
+}
+
+void InputSystem::RotateBuildFootprint(int direction) {
+    m_BuildRotation = (m_BuildRotation + 1) % 2; // 0 or 1
+
+    if (m_BuildRotation == 0) {
+        // 0 degrees
+        m_BuildFootprint = m_BaseFootprint;
+    }
+    else {
+        // 90 degrees
+        m_BuildFootprint = { m_BaseFootprint.y, m_BaseFootprint.x };
+    }
 }
 
 std::optional<ecs::Entity> InputSystem::GetHighlighter() {
@@ -107,6 +133,9 @@ void InputSystem::UpdateHighlighter() {
     auto gridSystem = m_Registry->GetSystem<GridSystem>();
     auto& transform = m_Registry->GetComponent<TransformComponent>(highlighter);
     auto& render = m_Registry->GetComponent<RenderComponent>(highlighter);
+    auto& mesh = m_Registry->GetComponent<MeshComponent>(highlighter);
+
+    mesh.type = m_BuildMeshType;
 
     double xpos, ypos;
     glfwGetCursorPos(m_Window, &xpos, &ypos);
@@ -114,15 +143,46 @@ void InputSystem::UpdateHighlighter() {
     std::optional<glm::vec3> intersection = IntersectRayWithPlane(m_CameraPosition, rayDir);
 
     if (intersection) {
-        glm::ivec2 gridPos = gridSystem->WorldToGrid(*intersection);
-        m_LastPlacementValid = gridSystem->IsValidTile(gridPos.x, gridPos.y) &&
-            !gridSystem->IsTileOccupied(gridPos.x, gridPos.y);
+        glm::ivec2 anchorGridPos = gridSystem->WorldToGrid(*intersection);
 
-        glm::vec3 worldPos = gridSystem->GridToWorld(gridPos.x, gridPos.y);
-        transform.position = { worldPos.x, 0.01f, worldPos.z };
+        m_LastPlacementValid = true;
+        for (int x = 0; x < m_BuildFootprint.x; ++x) {
+            for (int z = 0; z < m_BuildFootprint.y; ++z) {
+                int currentX = anchorGridPos.x + x;
+                int currentZ = anchorGridPos.y + z;
+
+                if (!gridSystem->IsValidTile(currentX, currentZ) || gridSystem->IsTileOccupied(currentX, currentZ)) {
+                    m_LastPlacementValid = false;
+                    break;
+                }
+            }
+            if (!m_LastPlacementValid) break;
+        }
+
+        transform.scale = glm::vec3(m_BuildFootprint.x, 1.0f, m_BuildFootprint.y);
+        transform.rotation = { 0.0f, (m_BuildRotation == 1) ? 90.0f : 0.0f, 0.0f };
+
+        glm::vec3 worldPos = gridSystem->GridToWorld(anchorGridPos.x, anchorGridPos.y);
+
+        // --- THIS IS THE FIX ---
+        // Calculate the correct Y position (the "offset")
+        float yOffset = 0.01f; // 0.01f to hover just above the grid
+        if (m_BuildMeshType == MeshType::Cube || m_BuildMeshType == MeshType::Turret || m_BuildMeshType == MeshType::Sphere) {
+            // For centered objects (like cube), offset by half-height
+            yOffset += 0.5f; // Assumes a 1-unit-high model
+        }
+        // For the pyramid, the offset is just 0.01f (its base is already at y=0)
+
+        transform.position = {
+            worldPos.x + (m_BuildFootprint.x / 2.0f) - 0.5f,
+            yOffset, // <-- USE THE CALCULATED OFFSET
+            worldPos.z + (m_BuildFootprint.y / 2.0f) - 0.5f
+        };
+        // --- END OF FIX ---
+
         render.color = m_LastPlacementValid ?
-            glm::vec4(0.0f, 1.0f, 0.0f, 0.5f) :
-            glm::vec4(1.0f, 0.0f, 0.0f, 0.5f);
+            glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) : // Green
+            glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Red
     }
     else {
         render.color.a = 0.0f;
@@ -143,19 +203,43 @@ void InputSystem::HandleMouseClick() {
             if (resourceSystem->SpendResources(m_BuildCost)) {
                 auto highlighter = GetHighlighter();
                 auto& h_transform = m_Registry->GetComponent<TransformComponent>(*highlighter);
-                glm::ivec2 gridPos = gridSystem->WorldToGrid(h_transform.position);
+
+                glm::ivec2 anchorGridPos = gridSystem->WorldToGrid(h_transform.position -
+                    glm::vec3((m_BuildFootprint.x / 2.0f) - 0.5f, 0.0f, (m_BuildFootprint.y / 2.0f) - 0.5f));
 
                 auto building = m_Registry->CreateEntity();
+
+                // --- THIS IS THE CORRECT LOGIC (which you said works) ---
+                float yOffset = 0.0f;
+                if (m_BuildMeshType == MeshType::Cube || m_BuildMeshType == MeshType::Turret || m_BuildMeshType == MeshType::Sphere) {
+                    yOffset = 0.5f; // Assumes 1-unit-high model
+                }
+
                 m_Registry->AddComponent(building, TransformComponent{
-                    {h_transform.position.x, 0.0f, h_transform.position.z},
-                    {1.0f, 1.0f, 1.0f},
-                    {0.0f, 0.0f, 0.0f}
+                    {h_transform.position.x, yOffset, h_transform.position.z},
+                    h_transform.scale,
+                    h_transform.rotation
                     });
-                m_Registry->AddComponent(building, RenderComponent{ {1.0f, 1.0f, 1.0f, 1.0f} });
+                // --- END OF LOGIC ---
+
+                glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+                if (m_BuildBuildingType == BuildingType::ResourceNode) {
+                    color = { 0.2f, 0.8f, 0.2f, 1.0f }; // Green
+                }
+                m_Registry->AddComponent(building, RenderComponent{ color });
+
                 m_Registry->AddComponent(building, MeshComponent{ m_BuildMeshType });
                 m_Registry->AddComponent(building, BuildingComponent{ m_BuildBuildingType });
 
-                gridSystem->SetTileOccupied(gridPos.x, gridPos.y, true);
+                if (m_BuildBuildingType == BuildingType::ResourceNode) {
+                    m_Registry->AddComponent(building, ResourceGeneratorComponent{});
+                }
+
+                for (int x = 0; x < m_BuildFootprint.x; ++x) {
+                    for (int z = 0; z < m_BuildFootprint.y; ++z) {
+                        gridSystem->SetTileOccupied(anchorGridPos.x + x, anchorGridPos.y + z, true);
+                    }
+                }
 
                 if (m_BuildBuildingType == BuildingType::Base) {
                     m_Game->OnBasePlaced();
@@ -166,7 +250,6 @@ void InputSystem::HandleMouseClick() {
                 std::cout << "Not enough resources!" << std::endl;
             }
         }
-
     }
     else if (m_CurrentMode == InputMode::SELECT) {
         double xpos, ypos;
@@ -181,6 +264,11 @@ void InputSystem::HandleMouseClick() {
 
         auto& h_transform = m_Registry->GetComponent<TransformComponent>(*highlighter);
         auto& h_render = m_Registry->GetComponent<RenderComponent>(*highlighter);
+        auto& h_mesh = m_Registry->GetComponent<MeshComponent>(*highlighter);
+
+        h_transform.scale = { 1,1,1 };
+        h_transform.rotation = { 0,0,0 };
+        h_mesh.type = MeshType::Quad;
 
         if (intersection) {
             auto gridSystem = m_Registry->GetSystem<GridSystem>();
@@ -192,14 +280,14 @@ void InputSystem::HandleMouseClick() {
 
                 glm::vec3 worldPos = gridSystem->GridToWorld(gridPos.x, gridPos.y);
                 h_transform.position = { worldPos.x, 0.01f, worldPos.z };
-                h_render.color = { 1.0f, 1.0f, 0.0f, 0.5f };
+                h_render.color = { 1.0f, 1.0f, 0.0f, 1.0f };
             }
             else {
-                h_render.color.a = 0.0f; // Hide if off-grid
+                h_render.color.a = 0.0f;
             }
         }
         else {
-            h_render.color.a = 0.0f; // Hide if off-plane
+            h_render.color.a = 0.0f;
         }
     }
 }

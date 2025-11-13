@@ -11,14 +11,15 @@ enum class MeshType {
     Cube,
     Pyramid,
     Turret,
-    Unit_Soldier
+    Sphere
 };
 
 enum class BuildingType {
     None,
     Base,
     ResourceNode,
-    Turret
+    Turret,
+    Bomb
 };
 
 struct TransformComponent {
@@ -53,6 +54,8 @@ struct HealthComponent {
     float currentHP = 100.0f;
     float maxHP = 100.0f;
 };
+
+struct GhostComponent {};
 
 struct ResourceGeneratorComponent {
     float resourcesPerSecond = 1.0f;

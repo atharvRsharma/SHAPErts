@@ -13,15 +13,14 @@
 
 namespace ecs {
 
-    // --- Core Types ---
+    
     using Entity = uint32_t;
     constexpr Entity MAX_ENTITIES = 5000;
     using ComponentTypeID = uint8_t;
     constexpr ComponentTypeID MAX_COMPONENTS = 32;
-    using Signature = std::bitset<MAX_COMPONENTS>;
+    using Signature = std::bitset<MAX_COMPONENTS>; //0b0(2^32)
 
 
-    // --- EntityManager ---
     class EntityManager {
     public:
         EntityManager() {
@@ -31,7 +30,7 @@ namespace ecs {
         }
 
         Entity CreateEntity() {
-            assert(m_LivingEntityCount < MAX_ENTITIES && "Max entities exceeded");
+            assert(m_LivingEntityCount < MAX_ENTITIES && "entity overflow");
 
             Entity id = m_AvailableEntities.front();
             m_AvailableEntities.pop();
@@ -40,7 +39,7 @@ namespace ecs {
         }
 
         void DestroyEntity(Entity entity) {
-            assert(entity < MAX_ENTITIES && "Entity out of range");
+            assert(entity < MAX_ENTITIES && "entity out of range");
 
             m_Signatures[entity].reset();
             m_AvailableEntities.push(entity);
@@ -48,12 +47,12 @@ namespace ecs {
         }
 
         void SetSignature(Entity entity, Signature signature) {
-            assert(entity < MAX_ENTITIES && "Entity out of range");
+            assert(entity < MAX_ENTITIES && "entity out of range");
             m_Signatures[entity] = signature;
         }
 
         Signature GetSignature(Entity entity) const {
-            assert(entity < MAX_ENTITIES && "Entity out of range");
+            assert(entity < MAX_ENTITIES && "entity out of range");
             return m_Signatures[entity];
         }
 
@@ -68,7 +67,6 @@ namespace ecs {
     };
 
 
-    // --- ComponentManager ---
     class IComponentArray {
     public:
         virtual ~IComponentArray() = default;
@@ -79,7 +77,7 @@ namespace ecs {
     class ComponentArray : public IComponentArray {
     public:
         void InsertData(Entity entity, T component) {
-            assert(m_EntityToIndexMap.find(entity) == m_EntityToIndexMap.end() && "Component added twice");
+            assert(m_EntityToIndexMap.find(entity) == m_EntityToIndexMap.end() && "component added twice");
 
             size_t newIndex = m_Size;
             m_EntityToIndexMap[entity] = newIndex;
@@ -89,7 +87,7 @@ namespace ecs {
         }
 
         void RemoveData(Entity entity) {
-            assert(m_EntityToIndexMap.find(entity) != m_EntityToIndexMap.end() && "Removing non-existent component");
+            assert(m_EntityToIndexMap.find(entity) != m_EntityToIndexMap.end() && "removal of nonexisting component");
 
             size_t indexOfRemoved = m_EntityToIndexMap[entity];
             size_t indexOfLast = m_Size - 1;
@@ -105,8 +103,12 @@ namespace ecs {
         }
 
         T& GetData(Entity entity) {
-            assert(m_EntityToIndexMap.find(entity) != m_EntityToIndexMap.end() && "Retrieving non-existent component");
+            assert(m_EntityToIndexMap.find(entity) != m_EntityToIndexMap.end() && "trying to get a nonexistent component");
             return m_ComponentArray[m_EntityToIndexMap[entity]];
+        }
+
+        bool HasData(Entity entity) {
+            return m_EntityToIndexMap.find(entity) != m_EntityToIndexMap.end();
         }
 
         void EntityDestroyed(Entity entity) override {
@@ -128,7 +130,7 @@ namespace ecs {
         template<typename T>
         void RegisterComponent() {
             const char* typeName = typeid(T).name();
-            assert(m_ComponentTypes.find(typeName) == m_ComponentTypes.end() && "Registering component type more than once");
+            assert(m_ComponentTypes.find(typeName) == m_ComponentTypes.end() && "registering comp type more than once");
 
             m_ComponentTypes.insert({ typeName, m_NextComponentTypeID });
             m_ComponentArrays.insert({ typeName, std::make_shared<ComponentArray<T>>() });
@@ -138,10 +140,17 @@ namespace ecs {
         template<typename T>
         ComponentTypeID GetComponentTypeID() const {
             const char* typeName = typeid(T).name();
-            assert(m_ComponentTypes.find(typeName) != m_ComponentTypes.end() && "Component not registered");
-            // --- THIS IS THE FIX ---
-            return m_ComponentTypes.at(typeName); // Was []
+            assert(m_ComponentTypes.find(typeName) != m_ComponentTypes.end() && "unregistered comp");
+            return m_ComponentTypes.at(typeName); 
         }
+
+        template<typename T>
+        bool HasComponent(Entity entity) {
+            const char* typeName = typeid(T).name();
+            assert(m_ComponentTypes.find(typeName) != m_ComponentTypes.end() && "unregistered comp");
+            return GetComponentArray<T>()->HasData(entity);
+        }
+
 
         template<typename T>
         void AddComponent(Entity entity, T component) {
@@ -172,15 +181,14 @@ namespace ecs {
         template<typename T>
         std::shared_ptr<ComponentArray<T>> GetComponentArray() {
             const char* typeName = typeid(T).name();
-            assert(m_ComponentTypes.find(typeName) != m_ComponentTypes.end() && "Component not registered");
-            // --- THIS IS A FIX (but it was not const, so [] is okay) ---
+            assert(m_ComponentTypes.find(typeName) != m_ComponentTypes.end() && "unregistered comp");
             return std::static_pointer_cast<ComponentArray<T>>(m_ComponentArrays.at(typeName));
         }
     };
 
 
-    // --- SystemManager ---
-    class Registry; // Forward declare
+    
+    class Registry; //fwd decl
 
     class System {
     public:
@@ -195,7 +203,7 @@ namespace ecs {
         template<typename T>
         std::shared_ptr<T> RegisterSystem(Registry* registry) {
             const char* typeName = typeid(T).name();
-            assert(m_Systems.find(typeName) == m_Systems.end() && "Registering system more than once");
+            assert(m_Systems.find(typeName) == m_Systems.end() && "registering system more than once");
 
             auto system = std::make_shared<T>();
             system->m_Registry = registry;
@@ -206,14 +214,14 @@ namespace ecs {
         template<typename T>
         std::shared_ptr<T> GetSystem() const { 
             const char* typeName = typeid(T).name();
-            assert(m_Systems.find(typeName) != m_Systems.end() && "System not registered");
+            assert(m_Systems.find(typeName) != m_Systems.end() && "unregistered sys");
             return std::static_pointer_cast<T>(m_Systems.at(typeName)); 
         }
 
         template<typename T>
         void SetSignature(Signature signature)  {
             const char* typeName = typeid(T).name();
-            assert(m_Systems.find(typeName) != m_Systems.end() && "System not registered");
+            assert(m_Systems.find(typeName) != m_Systems.end() && "unregistered sys");
             m_Signatures.insert({ typeName, signature });
         }
 
@@ -313,7 +321,6 @@ namespace ecs {
             return m_ComponentManager->GetComponentTypeID<T>();
         }
 
-        // System methods
         template<typename T>
         std::shared_ptr<T> RegisterSystem() {
             return m_SystemManager->RegisterSystem<T>(this);
@@ -327,6 +334,11 @@ namespace ecs {
         template<typename T>
         void SetSystemSignature(Signature signature) {
             m_SystemManager->SetSignature<T>(signature);
+        }
+
+        template<typename T>
+        bool HasComponent(Entity entity) {
+            return m_ComponentManager->HasComponent<T>(entity);
         }
 
     private:
