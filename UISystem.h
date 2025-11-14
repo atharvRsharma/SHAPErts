@@ -13,7 +13,7 @@
 #include "ResourceSystem.h"
 
 const double BASE_COST = 100.0;
-const double TURRET_COST = 150.0;
+const double TURRET_COST = 650.0;
 const double NODE_COST = 50.0;
 const double BOMB_COST = 70.0;
 
@@ -99,7 +99,7 @@ private:
 
                 ImGui::Separator();
                 if (ImGui::Button("Spawn Enemy")) {
-                    game->SpawnEnemyAt({ 10.0f, 0.5f, 10.0f });
+                    game->SpawnEnemyAt({ 9.5f, 0.5f, 9.5f });
                 }
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("Spawns 1 enemy at (10, 10)");
             }
@@ -167,29 +167,33 @@ private:
 
         if (ImGui::CollapsingHeader("defense", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (!game->m_BasePlaced) {
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+                ImGui::BeginDisabled(); // disable all children until EndDisabled
                 ImGui::Button("Turret [150]", ImVec2(-1, 0));
                 ImGui::Button("Bomb [70]", ImVec2(-1, 0));
-                ImGui::PopStyleVar();
+                ImGui::EndDisabled();
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("home base has to be placed first");
             }
             else {
-                bool canAfford = currentResources >= TURRET_COST;
-                if (!canAfford) ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+                bool canAffordTurret = currentResources >= TURRET_COST;
+                bool canAffordBomb = currentResources >= BOMB_COST;
 
-                if (ImGui::Button("Turret [150]", ImVec2(-1, 0)) && canAfford) {
+                //disable turret button when unaffordable
+                if (!canAffordTurret) ImGui::BeginDisabled();
+                if (ImGui::Button("Turret [150]", ImVec2(-1, 0)) && canAffordTurret) {
                     inputSystem->EnterBuildMode(BuildingType::Turret, MeshType::Turret, TURRET_COST, { 1, 1 });
                 }
+                if (!canAffordTurret) ImGui::EndDisabled();
 
-                if (ImGui::Button("Bomb [70]", ImVec2(-1, 0)) && canAfford) {
+                //disable bomb button when unaffordable
+                if (!canAffordBomb) ImGui::BeginDisabled();
+                if (ImGui::Button("Bomb [70]", ImVec2(-1, 0)) && canAffordBomb) {
                     inputSystem->EnterBuildMode(BuildingType::Bomb, MeshType::Sphere, BOMB_COST, { 1, 1 });
                 }
-
-                if (!canAfford) ImGui::PopStyleVar();
+                if (!canAffordBomb) ImGui::EndDisabled();
             }
         }
 
-        // --- Category: Resources ---
+
         if (ImGui::CollapsingHeader("Resources", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (!game->m_BasePlaced) {
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
@@ -201,7 +205,6 @@ private:
                 bool canAfford = currentResources >= NODE_COST;
                 if (!canAfford) ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 
-                // --- FIX: Correct arguments ---
                 if (ImGui::Button("Node [50]", ImVec2(-1, 0)) && canAfford) {
                     inputSystem->EnterBuildMode(BuildingType::ResourceNode, MeshType::Cube, NODE_COST, { 1, 1 });
                 }

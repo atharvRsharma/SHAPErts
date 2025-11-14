@@ -5,6 +5,10 @@
 #include "RenderSystem.h"
 #include "UISystem.h"
 #include "InputSystem.h"
+#include "ResourceSystem.h"
+#include "GridSystem.h"
+#include "MovementSystem.h" 
+#include "EnemyAISystem.h"  
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -14,13 +18,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "ResourceSystem.h"
-#include "GridSystem.h"
-
-#include "MovementSystem.h"
-#include "EnemyAISystem.h"
-
-
+// --- (All callbacks are unchanged and correct) ---
 void glfw_error_callback(int error, const char* description) {
     std::cerr << "GLFW Error (" << error << "): " << description << std::endl;
 }
@@ -35,40 +33,29 @@ void Game::framebuffer_size_callback(GLFWwindow* window, int width, int height) 
     }
 }
 
-
 void Game::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
     if (ImGui::GetIO().WantCaptureMouse || !game) return;
 
-    if (game->m_IsGodMode) return; // No scroll in God Mode
+    if (game->m_IsGodMode) return;
 
-    // --- OLD LOGIC: Scroll to Rotate ---
     if (game->m_InputSystem->IsInBuildMode()) {
-        // yoffset is +1 or -1. Pass it to the input system.
         game->m_InputSystem->RotateBuildFootprint(yoffset > 0 ? 1 : -1);
     }
     else {
-        game->m_OrbitCamera.ProcessMouseScroll(static_cast<float>(yoffset)); // Normal zoom
+        game->m_OrbitCamera.ProcessMouseScroll(static_cast<float>(yoffset));
     }
 }
-
 
 void Game::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
     if (!game) return;
 
-    // --- NEW "Click-Away to Cancel" LOGIC ---
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS &&
-        ImGui::GetIO().WantCaptureMouse && game->m_InputSystem->IsInBuildMode())
-    {}
-
-    if (ImGui::GetIO().WantCaptureMouse) return; // All other UI clicks stop here
-
+    if (ImGui::GetIO().WantCaptureMouse) return;
     if (game->m_IsGodMode) return;
 
-    // --- (Pan/Orbit logic is unchanged) 
     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
         if (action == GLFW_PRESS) {
             game->m_IsOrbiting = true;
@@ -95,7 +82,7 @@ void Game::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
     if (!game) return;
 
     float xoffset = static_cast<float>(xpos - game->m_LastMouseX);
-    float yoffset = static_cast<float>(game->m_LastMouseY - ypos); 
+    float yoffset = static_cast<float>(game->m_LastMouseY - ypos);
 
     if (game->m_IsGodMode || game->m_IsOrbiting || game->m_IsPanning) {
         game->m_LastMouseX = xpos;
@@ -127,15 +114,12 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
         game->m_KeyCodeBuffer.erase(game->m_KeyCodeBuffer.begin());
     }
 
-    /*for (int k : game->m_KeyCodeBuffer) {
-        std::cout << (char)k << " ";
-    }
-    std::cout << "\n";*/
     if (game->m_KeyCodeBuffer == game->m_GodModeCode) {
         game->ToggleGodMode();
     }
-
 }
+// --- (End Callbacks) ---
+
 
 Game::Game(int width, int height, const std::string& title)
     : m_Window(nullptr), m_Width(width), m_Height(height), m_Title(title),
@@ -155,8 +139,6 @@ void Game::SetAppState(AppState newState) {
     }
 }
 
-
-
 void Game::OnBasePlaced(glm::vec3 position) {
     m_BasePlaced = true;
     m_BasePosition = position;
@@ -164,27 +146,31 @@ void Game::OnBasePlaced(glm::vec3 position) {
 }
 
 void Game::SpawnEnemyAt(glm::vec3 position) {
-    if (!m_BasePlaced) return; // Can't spawn until base is placed
+    if (!m_BasePlaced) {
+        std::cout << "Cannot spawn enemy: Base not placed." << std::endl;
+        return;
+    }
 
     std::cout << "Spawning enemy at: " << position.x << "," << position.y << "," << position.z << std::endl;
 
     auto enemy = m_Registry->CreateEntity();
     m_Registry->AddComponent(enemy, TransformComponent{
         position,
-        {1.0f, 1.0f, 1.0f},
+        {0.4f, 0.4f, 0.4f},
         {0.0f, 0.0f, 0.0f}
         });
     m_Registry->AddComponent(enemy, RenderComponent{ {0.8f, 0.2f, 0.8f, 1.0f} }); // Purple
-    m_Registry->AddComponent(enemy, MeshComponent{ MeshType::Cube }); // Placeholder
+    m_Registry->AddComponent(enemy, MeshComponent{ MeshType::Cube });
     m_Registry->AddComponent(enemy, HealthComponent{ 50.0f, 50.0f });
     m_Registry->AddComponent(enemy, EnemyComponent{});
-    m_Registry->AddComponent(enemy, MovementComponent{
-        position, // Target (will be updated by AI)
-        3.0f,     // Speed
-        false     // isMoving
-        });
-}
 
+    MovementComponent move;
+    move.speed = 3.0f;
+    move.path = {};
+    move.currentPathIndex = 0;
+
+    m_Registry->AddComponent(enemy, move);
+}
 
 
 void Game::Init() {
@@ -228,6 +214,7 @@ void Game::Init() {
 
     m_Registry = std::make_unique<ecs::Registry>();
 
+    // --- Register components ---
     m_Registry->RegisterComponent<TransformComponent>();
     m_Registry->RegisterComponent<RenderComponent>();
     m_Registry->RegisterComponent<MeshComponent>();
@@ -240,6 +227,7 @@ void Game::Init() {
     m_Registry->RegisterComponent<MovementComponent>();
     m_Registry->RegisterComponent<EnemyComponent>();
 
+    // --- Register systems ---
     m_RenderSystem = m_Registry->RegisterSystem<RenderSystem>();
     m_UISystem = m_Registry->RegisterSystem<UISystem>();
     m_InputSystem = m_Registry->RegisterSystem<InputSystem>();
@@ -248,6 +236,7 @@ void Game::Init() {
     m_MovementSystem = m_Registry->RegisterSystem<MovementSystem>();
     m_EnemyAISystem = m_Registry->RegisterSystem<EnemyAISystem>();
 
+    // --- (Set All Signatures) ---
     ecs::Signature renderSig;
     renderSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
     renderSig.set(m_Registry->GetComponentTypeID<RenderComponent>());
@@ -258,7 +247,7 @@ void Game::Init() {
     inputSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
     inputSig.set(m_Registry->GetComponentTypeID<RenderComponent>());
     inputSig.set(m_Registry->GetComponentTypeID<MeshComponent>());
-    inputSig.set(m_Registry->GetComponentTypeID<GhostComponent>()); // <-- GHOST TAG
+    inputSig.set(m_Registry->GetComponentTypeID<GhostComponent>());
     m_Registry->SetSystemSignature<InputSystem>(inputSig);
 
     ecs::Signature uiSig;
@@ -277,13 +266,17 @@ void Game::Init() {
     aiSig.set(m_Registry->GetComponentTypeID<EnemyComponent>());
     aiSig.set(m_Registry->GetComponentTypeID<MovementComponent>());
     m_Registry->SetSystemSignature<EnemyAISystem>(aiSig);
+    // --- (End Signatures) ---
 
+    // --- Init Systems ---
     m_RenderSystem->Init();
     m_UISystem->Init(m_Registry.get());
-    m_InputSystem->Init(m_Window, m_Registry.get(), this); 
+    m_InputSystem->Init(m_Window, m_Registry.get(), this);
     m_InputSystem->SetWindowSize(m_Width, m_Height);
     m_ResourceSystem->Init(1000.0);
     m_GridSystem->Init();
+
+    m_EnemyAISystem->Init(m_GridSystem.get());
 
     auto grid = m_Registry->CreateEntity();
     m_Registry->AddComponent(grid, TransformComponent{ {0,0,0}, {20,1,20} });
@@ -293,12 +286,9 @@ void Game::Init() {
 
     auto highlighter = m_Registry->CreateEntity();
     m_Registry->AddComponent(highlighter, TransformComponent{ {0.5f, 0.01f, 0.5f} });
-    m_Registry->AddComponent(highlighter, RenderComponent{ {0,0,0,0} }); //color set by input system
-    m_Registry->AddComponent(highlighter, MeshComponent{ MeshType::None }); //mesh set by input system
+    m_Registry->AddComponent(highlighter, RenderComponent{ {0,0,0,0} });
+    m_Registry->AddComponent(highlighter, MeshComponent{ MeshType::None });
     m_Registry->AddComponent(highlighter, GhostComponent{});
-
-
-
 }
 
 void Game::ToggleGodMode()
@@ -312,9 +302,7 @@ void Game::ToggleGodMode()
         m_PreGodModeTarget = m_OrbitCamera.GetTarget();
         m_PreGodModeDistance = m_OrbitCamera.GetDistance();
 
-        // Sync fly cam to orbit cam
         m_FlyCamera.Position = m_OrbitCamera.GetPosition();
-
         glm::vec3 direction = glm::normalize(m_OrbitCamera.GetTarget() - m_OrbitCamera.GetPosition());
         m_FlyCamera.Yaw = glm::degrees(atan2(direction.z, direction.x));
         m_FlyCamera.Pitch = glm::degrees(asin(direction.y));
@@ -348,26 +336,26 @@ void Game::Run() {
 
         ProcessInput((float)frameTime);
 
-        switch (m_CurrentState) {      
-            case AppState::PLAYING:        
-            {
-                while (accumulator >= dt) {
-                    m_ResourceSystem->Update((float)dt);
-                    m_UISystem->Update((float)dt);
+        switch (m_CurrentState) {
+        case AppState::PLAYING:
+        {
+            while (accumulator >= dt) {
+                m_ResourceSystem->Update((float)dt);
+                m_UISystem->Update((float)dt);
 
-                    if (!m_IsGodMode) {
-                        m_InputSystem->Update();
-                    }
-                    if (m_BasePlaced) { // Only run AI if base exists
-                        m_EnemyAISystem->Update((float)dt, m_BasePosition);
-                    }
-                    m_MovementSystem->Update((float)dt);
-                    accumulator -= dt;
-                    t += dt;
+                if (!m_IsGodMode) {
+                    m_InputSystem->Update();
                 }
-                Render();
-                break;
+                if (m_BasePlaced) {
+                    m_EnemyAISystem->Update((float)dt * 10, m_Registry.get());
+                }
+                m_MovementSystem->Update((float)dt);
+                accumulator -= dt;
+                t += dt;
             }
+            Render();
+            break;
+        }
         }
     }
 }
@@ -389,6 +377,7 @@ void Game::ProcessInput(float dt)
             m_FlyCamera.ProcessKeyboard(FlyCam_Movement::LEFT, dt);
         if (glfwGetKey(m_Window, GLFW_KEY_D) == GLFW_PRESS)
             m_FlyCamera.ProcessKeyboard(FlyCam_Movement::RIGHT, dt);
+        // --- YOUR CONTROLS ---
         if (glfwGetKey(m_Window, GLFW_KEY_SPACE) == GLFW_PRESS)
             m_FlyCamera.ProcessKeyboard(FlyCam_Movement::UP, dt);
         if (glfwGetKey(m_Window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
@@ -396,7 +385,7 @@ void Game::ProcessInput(float dt)
     }
 }
 
-void Game::Update(float dt) {  }
+void Game::Update(float dt) { /* (not used) */ }
 
 void Game::Render() {
     ImGui_ImplOpenGL3_NewFrame();
@@ -405,7 +394,7 @@ void Game::Render() {
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST); // <-- This is totally fine here
 
     glm::mat4 projection = m_IsGodMode ?
         glm::perspective(glm::radians(45.0f), (float)m_Width / (float)m_Height, 0.1f, 100.0f) :

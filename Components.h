@@ -55,7 +55,7 @@ struct SelectableComponent {
 struct GhostComponent {};
 
 struct ResourceGeneratorComponent {
-    float resourcesPerSecond = 1.0f;
+    float resourcesPerSecond = 20.0f;
 };
 
 struct HealthComponent {
@@ -66,7 +66,7 @@ struct HealthComponent {
 struct EnemyComponent {};
 
 struct MovementComponent {
-    glm::vec3 targetPosition;
     float speed = 2.0f;
-    bool isMoving = false;
+    std::vector<glm::vec3> path;
+    int currentPathIndex = 0;
 };
