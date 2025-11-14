@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Systems.h"
 #include "ECS.h"
 #include "Components.h"
 #include <glad/glad.h>

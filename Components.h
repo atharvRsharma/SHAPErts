@@ -55,7 +55,7 @@ struct SelectableComponent {
 struct GhostComponent {};
 
 struct ResourceGeneratorComponent {
-    float resourcesPerSecond = 20.0f;
+    float resourcesPerSecond = 2.0f;
 };
 
 struct HealthComponent {
@@ -65,8 +65,43 @@ struct HealthComponent {
 
 struct EnemyComponent {};
 
+struct ProjectileComponent { 
+    glm::vec3 velocity;
+    float damage;
+};
+
+struct BombComponent {
+    float triggerRadius = 1.5f; 
+    float blastRadius = 2.5f;
+    float damage = 50.0f;
+};
+
+struct TurretAIComponent {
+    float range = 8.0f;
+    float fovDegrees = 90.0f;
+    float turnSpeed = 90.0f; // degrees per second
+    ecs::Entity currentTarget = ecs::MAX_ENTITIES;
+
+    // "Durability" cost: damage to self per burst
+    float selfDamagePerBurst = 5.0f;
+
+    // Burst-fire logic
+    float fireCooldown = 0.0f;
+    float burstDelay = 0.1f;
+    float reloadTime = 2.0f;
+    int shotsInBurst = 5;
+    int currentAmmo = 5;
+};
+
+// --- UPDATED: Holds AI state for an enemy ---
 struct MovementComponent {
     float speed = 2.0f;
     std::vector<glm::vec3> path;
     int currentPathIndex = 0;
+
+    // --- THIS IS THE CoC "LOCK-ON" ---
+    ecs::Entity targetEntity = ecs::MAX_ENTITIES; // The building this enemy is locked onto
+    bool isAttacking = false;
+    float attackRate = 1.0f;
+    float attackCooldown = 0.0f;
 };

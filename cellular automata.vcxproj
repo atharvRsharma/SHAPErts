@@ -165,6 +165,8 @@
     <ClCompile Include="stb.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BalanceSystem.h" />
+    <ClInclude Include="CombatSystem.h" />
     <ClInclude Include="EnemyAISystem.h" />
     <ClInclude Include="MovementSystem.h" />
     <ClInclude Include="OrbitCamera.h" />
@@ -187,10 +189,10 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Pathfinder.h" />
     <ClInclude Include="Primitives.h" />
+    <ClInclude Include="ProjectileSystem.h" />
     <ClInclude Include="RenderSystem.h" />
     <ClInclude Include="ResourceSystem.h" />
     <ClInclude Include="Shader.h" />
-    <ClInclude Include="Systems.h" />
     <ClInclude Include="UISystem.h" />
   </ItemGroup>
   <ItemGroup>

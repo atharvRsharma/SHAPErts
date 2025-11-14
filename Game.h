@@ -16,8 +16,11 @@ class UISystem;
 class InputSystem;
 class ResourceSystem;
 class GridSystem;
-class MovementSystem; // <-- NEW
-class EnemyAISystem;  // <-- NEW
+class MovementSystem;
+class EnemyAISystem;
+class CombatSystem; 
+class BalanceSystem;
+class ProjectileSystem;
 
 enum class AppState {
     PLAYING
@@ -69,8 +72,11 @@ private:
     std::shared_ptr<InputSystem> m_InputSystem; 
     std::shared_ptr<ResourceSystem> m_ResourceSystem;
     std::shared_ptr<GridSystem> m_GridSystem;
-    std::shared_ptr<MovementSystem> m_MovementSystem; // <-- NEW
-    std::shared_ptr<EnemyAISystem> m_EnemyAISystem;   // <-- NEW
+    std::shared_ptr<MovementSystem> m_MovementSystem; 
+    std::shared_ptr<EnemyAISystem> m_EnemyAISystem;   
+    std::shared_ptr<BalanceSystem> m_BalanceSystem; 
+    std::shared_ptr<CombatSystem> m_CombatSystem;
+    std::shared_ptr<ProjectileSystem> m_ProjectileSystem;
     
     // --- NEW: Store base position ---
     glm::vec3 m_BasePosition = {0,0,0};

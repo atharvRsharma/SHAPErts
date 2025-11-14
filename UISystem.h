@@ -1,26 +1,33 @@
 #pragma once
 
-#include "Systems.h"
+
+
 #include "ECS.h"
 #include "Components.h" 
 #include "imgui.h"
 #include <string>
-#include <GLFW/glfw3.h> // For FPS counter
+#include <GLFW/glfw3.h> 
 
 #include "RenderSystem.h"
 #include "InputSystem.h"
 #include "Game.h"
 #include "ResourceSystem.h"
+#include "BalanceSystem.h"
+
 
 const double BASE_COST = 100.0;
-const double TURRET_COST = 650.0;
+const double TURRET_COST = 150.0;
 const double NODE_COST = 50.0;
 const double BOMB_COST = 70.0;
+
+
+
 
 struct UIState {
     double resources = 0.0;
     int unitCount = 0;
     std::string selectedTileInfo = "None";
+    float balance = 0.5f;
     double fps = 0.0;
 };
 
@@ -31,18 +38,10 @@ public:
     }
 
     void Update(float dt) {
-        // --- FPS Counter ---
-        static double lastTime = glfwGetTime();
-        static int frames = 0;
-        double currentTime = glfwGetTime();
-        frames++;
-        if (currentTime - lastTime >= 1.0) {
-            m_State.fps = (double)frames / (currentTime - lastTime);
-            frames = 0;
-            lastTime = currentTime;
-        }
+        
+        
 
-        // --- Get Selected Tile ---
+        
         auto inputSystem = m_Registry->GetSystem<InputSystem>();
         glm::ivec2 coords = inputSystem->GetSelectedGridCoords();
         if (coords.x != -1) {
@@ -52,12 +51,25 @@ public:
             m_State.selectedTileInfo = "None";
         }
 
-        // --- Get Resources ---
+        
         auto resourceSystem = m_Registry->GetSystem<ResourceSystem>();
         m_State.resources = resourceSystem->GetResources();
+
+        auto balanceSystem = m_Registry->GetSystem<BalanceSystem>();
+        m_State.balance = balanceSystem->GetBalance();
     }
 
     void Render(ecs::Registry* registry) {
+
+        static double lastTime = glfwGetTime();
+        static int frames = 0;
+        double currentTime = glfwGetTime();
+        frames++;
+        if (currentTime - lastTime >= 1.0) {
+            m_State.fps = (double)frames / (currentTime - lastTime);
+            frames = 0;
+            lastTime = currentTime;
+        }
         DrawMainHUD(registry);
         DrawDebugWindow(registry);
         DrawBuildMenu(registry);
@@ -66,11 +78,13 @@ public:
 
 private:
     UIState m_State;
-    // (Removed old FPS counters)
+
 
     void DrawMainHUD(ecs::Registry* registry) {
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(300, 150), ImGuiCond_Always);
+
+        auto balanceSystem = m_Registry->GetSystem<BalanceSystem>();
 
         if (ImGui::Begin("Game HUD", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
             ImGui::Text("Resources: %d", (int)m_State.resources);
@@ -79,8 +93,10 @@ private:
             ImGui::Separator();
             ImGui::Text("Selected: %s", m_State.selectedTileInfo.c_str());
             ImGui::Text("Energy Balance");
-            float progress = 0.5f;
-            ImGui::ProgressBar(progress, ImVec2(-1.0f, 0.0f), "50%");
+
+           
+            std::string text = std::to_string((int)m_State.balance * 100) + "%";
+            ImGui::ProgressBar(m_State.balance, ImVec2(-1.0f, 0.0f), text.c_str());
 
             ImGui::End();
         }

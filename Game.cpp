@@ -1,7 +1,6 @@
 #include "Game.h"
 #include "ECS.h"
 #include "Components.h"
-#include "Systems.h"
 #include "RenderSystem.h"
 #include "UISystem.h"
 #include "InputSystem.h"
@@ -9,6 +8,9 @@
 #include "GridSystem.h"
 #include "MovementSystem.h" 
 #include "EnemyAISystem.h"  
+#include "CombatSystem.h" 
+#include "BalanceSystem.h"
+#include "ProjectileSystem.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -226,6 +228,9 @@ void Game::Init() {
     m_Registry->RegisterComponent<HealthComponent>();
     m_Registry->RegisterComponent<MovementComponent>();
     m_Registry->RegisterComponent<EnemyComponent>();
+    m_Registry->RegisterComponent<TurretAIComponent>();
+    m_Registry->RegisterComponent<BombComponent>();    
+    m_Registry->RegisterComponent<ProjectileComponent>();
 
     // --- Register systems ---
     m_RenderSystem = m_Registry->RegisterSystem<RenderSystem>();
@@ -235,6 +240,9 @@ void Game::Init() {
     m_GridSystem = m_Registry->RegisterSystem<GridSystem>();
     m_MovementSystem = m_Registry->RegisterSystem<MovementSystem>();
     m_EnemyAISystem = m_Registry->RegisterSystem<EnemyAISystem>();
+    m_BalanceSystem = m_Registry->RegisterSystem<BalanceSystem>(); 
+    m_CombatSystem = m_Registry->RegisterSystem<CombatSystem>();
+    m_ProjectileSystem = m_Registry->RegisterSystem<ProjectileSystem>();
 
     // --- (Set All Signatures) ---
     ecs::Signature renderSig;
@@ -266,6 +274,20 @@ void Game::Init() {
     aiSig.set(m_Registry->GetComponentTypeID<EnemyComponent>());
     aiSig.set(m_Registry->GetComponentTypeID<MovementComponent>());
     m_Registry->SetSystemSignature<EnemyAISystem>(aiSig);
+
+    ecs::Signature combatSig;
+    combatSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
+    combatSig.set(m_Registry->GetComponentTypeID<TurretAIComponent>());
+    m_Registry->SetSystemSignature<CombatSystem>(combatSig);
+
+    ecs::Signature balanceSig; // Empty signature
+    m_Registry->SetSystemSignature<BalanceSystem>(balanceSig);
+
+    ecs::Signature projectileSig;
+    projectileSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
+    projectileSig.set(m_Registry->GetComponentTypeID<ProjectileComponent>());
+    m_Registry->SetSystemSignature<ProjectileSystem>(projectileSig);
+
     // --- (End Signatures) ---
 
     // --- Init Systems ---
@@ -273,8 +295,12 @@ void Game::Init() {
     m_UISystem->Init(m_Registry.get());
     m_InputSystem->Init(m_Window, m_Registry.get(), this);
     m_InputSystem->SetWindowSize(m_Width, m_Height);
-    m_ResourceSystem->Init(1000.0);
     m_GridSystem->Init();
+
+    m_BalanceSystem->Init(); // Init this first
+    m_ResourceSystem->Init(m_BalanceSystem.get(), 1000.0);
+    m_EnemyAISystem->Init(m_GridSystem.get());
+    m_CombatSystem->Init(m_BalanceSystem.get(), m_ResourceSystem.get(), m_GridSystem.get());
 
     m_EnemyAISystem->Init(m_GridSystem.get());
 
@@ -340,16 +366,26 @@ void Game::Run() {
         case AppState::PLAYING:
         {
             while (accumulator >= dt) {
+                // --- UPDATE ALL SYSTEMS ---
                 m_ResourceSystem->Update((float)dt);
                 m_UISystem->Update((float)dt);
 
                 if (!m_IsGodMode) {
                     m_InputSystem->Update();
                 }
+
                 if (m_BasePlaced) {
-                    m_EnemyAISystem->Update((float)dt * 10, m_Registry.get());
+                    // --- NEW: Get entity lists ---
+                    auto& enemyEntities = m_EnemyAISystem->m_Entities;
+                    auto& renderableEntities = m_RenderSystem->m_Entities;
+
+                    // --- Run AI and Combat ---
+                    m_EnemyAISystem->Update((float)dt, m_Registry.get(), renderableEntities);
+                    m_CombatSystem->Update((float)dt, m_Registry.get(), enemyEntities, renderableEntities);
+                    m_ProjectileSystem->Update((float)dt, m_Registry.get(), enemyEntities);
                 }
                 m_MovementSystem->Update((float)dt);
+
                 accumulator -= dt;
                 t += dt;
             }

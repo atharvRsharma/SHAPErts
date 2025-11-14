@@ -6,7 +6,7 @@
 #include <set>
 #include <cmath>
 #include <glm/glm.hpp>
-#include <glm/gtx/hash.hpp>
+#include <glm/gtx/hash.hpp> 
 #include "GridSystem.h"
 
 namespace Pathfinder {

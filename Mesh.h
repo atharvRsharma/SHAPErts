@@ -15,8 +15,7 @@ public:
         std::vector<Primitives::Vertex> vertices;
         std::vector<unsigned int> indices;
         
-        // --- THIS IS THE FIX ---
-        parseObj(modelPath, vertices, indices); // Was hard-coded
+        parseObj(modelPath, vertices, indices);
 
         if (vertices.empty()) {
             std::cerr << "ERROR::MESH: Failed to load model or model is empty: " << modelPath << std::endl;

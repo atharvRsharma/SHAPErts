@@ -1,7 +1,6 @@
 // All elements are generic placeholders for testing purposes.
 #pragma once
 
-#include "Systems.h"
 #include "Shader.h"
 #include "Components.h"
 #include "ECS.h"
