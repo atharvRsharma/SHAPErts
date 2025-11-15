@@ -11,7 +11,8 @@ enum class MeshType {
     Cube,
     Pyramid,
     Turret,
-    Sphere
+    Sphere,
+    Capsule
 };
 
 enum class BuildingType {
@@ -55,37 +56,37 @@ struct SelectableComponent {
 struct GhostComponent {};
 
 struct ResourceGeneratorComponent {
-    float resourcesPerSecond = 2.0f;
+    int resourcesPerSecond = 2;
 };
 
 struct HealthComponent {
-    float currentHP = 100.0f;
-    float maxHP = 100.0f;
+    int currentHP = 100;
+    int maxHP = 100;
 };
 
 struct EnemyComponent {};
 
 struct ProjectileComponent { 
     glm::vec3 velocity;
-    float damage;
+    int damage;
 };
 
 struct BombComponent {
     float triggerRadius = 1.5f; 
     float blastRadius = 2.5f;
-    float damage = 50.0f;
+    int damage = 50;
 };
 
 struct TurretAIComponent {
     float range = 8.0f;
     float fovDegrees = 90.0f;
-    float turnSpeed = 90.0f; // degrees per second
+    float turnSpeed = 90.0f; //degrees per second
     ecs::Entity currentTarget = ecs::MAX_ENTITIES;
 
-    // "Durability" cost: damage to self per burst
-    float selfDamagePerBurst = 5.0f;
+    //self inflicted damage
+    int selfDamagePerBurst = 5;
 
-    // Burst-fire logic
+    //burst fire
     float fireCooldown = 0.0f;
     float burstDelay = 0.1f;
     float reloadTime = 2.0f;
@@ -93,15 +94,18 @@ struct TurretAIComponent {
     int currentAmmo = 5;
 };
 
-// --- UPDATED: Holds AI state for an enemy ---
 struct MovementComponent {
     float speed = 2.0f;
     std::vector<glm::vec3> path;
     int currentPathIndex = 0;
 
-    // --- THIS IS THE CoC "LOCK-ON" ---
-    ecs::Entity targetEntity = ecs::MAX_ENTITIES; // The building this enemy is locked onto
+    //lock on functionality
+    ecs::Entity targetEntity = ecs::MAX_ENTITIES; //actual building the enemy latched onto
     bool isAttacking = false;
-    float attackRate = 1.0f;
+    short attackRate = 1;
     float attackCooldown = 0.0f;
+};
+
+struct CollisionComponent {
+    float radius = 0.5f;
 };

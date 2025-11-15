@@ -9,7 +9,6 @@
 #include "OrbitCamera.h"
 #include "FlyCamera.h"
 
-// Forward declarations
 namespace ecs { class Registry; }
 class RenderSystem;
 class UISystem;
@@ -21,6 +20,7 @@ class EnemyAISystem;
 class CombatSystem; 
 class BalanceSystem;
 class ProjectileSystem;
+class CollisionSystem;
 
 enum class AppState {
     PLAYING
@@ -43,13 +43,11 @@ public:
 
     bool m_BasePlaced = false;
     
-    // --- UPDATED: Takes position ---
     void OnBasePlaced(glm::vec3 position);
     glm::vec3 GetBasePosition() const { return m_BasePosition; }
 
     void SetAppState(AppState newState);
 
-    // --- NEW: Public function for UI to call ---
     void SpawnEnemyAt(glm::vec3 position);
 
 private:
@@ -66,7 +64,6 @@ private:
 
     std::unique_ptr<ecs::Registry> m_Registry;
 
-    // --- Systems ---
     std::shared_ptr<RenderSystem> m_RenderSystem;
     std::shared_ptr<UISystem> m_UISystem;
     std::shared_ptr<InputSystem> m_InputSystem; 
@@ -77,11 +74,10 @@ private:
     std::shared_ptr<BalanceSystem> m_BalanceSystem; 
     std::shared_ptr<CombatSystem> m_CombatSystem;
     std::shared_ptr<ProjectileSystem> m_ProjectileSystem;
+    std::shared_ptr<CollisionSystem> m_CollisionSystem;
     
-    // --- NEW: Store base position ---
     glm::vec3 m_BasePosition = {0,0,0};
 
-    // --- Mouse State ---
     bool m_IsPanning = false;
     bool m_IsOrbiting = false; 
     double m_LastMouseX = 0.0;

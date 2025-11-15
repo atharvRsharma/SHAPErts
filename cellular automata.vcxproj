@@ -166,6 +166,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BalanceSystem.h" />
+    <ClInclude Include="CollisionSystem.h" />
     <ClInclude Include="CombatSystem.h" />
     <ClInclude Include="EnemyAISystem.h" />
     <ClInclude Include="MovementSystem.h" />

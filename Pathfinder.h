@@ -69,12 +69,9 @@ namespace Pathfinder {
             for (const auto& dir : neighbors) {
                 glm::ivec2 neighborPos = currentNode.pos + dir;
 
-                // --- THIS IS THE FIX ---
-                // Allow the path to *end* on an occupied tile.
                 if (neighborPos != end && !gridSystem->IsWalkable(neighborPos.x, neighborPos.y)) {
                     continue;
                 }
-                // --- END OF FIX ---
 
                 if (allNodes.count(neighborPos) && allNodes[neighborPos].inClosedSet) continue;
 
@@ -96,7 +93,7 @@ namespace Pathfinder {
             }
         }
 
-        return path; // No path found
+        return path; //if no path fpund
     }
 
-} // namespace Pathfinder
+}

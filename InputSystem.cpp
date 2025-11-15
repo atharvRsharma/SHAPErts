@@ -79,16 +79,13 @@ void InputSystem::ExitBuildMode() {
     std::cout << "Exiting build mode." << std::endl;
 }
 
-// --- THIS IS THE 4-WAY ROTATION LOGIC ---
+
 void InputSystem::RotateBuildFootprint(int direction) {
     if (direction == 0) return;
     int delta = (direction > 0) ? 1 : -1; // +1 for scroll up, -1 for scroll down
 
-    // support 4 orientations: 0, 1, 2, 3 (0, 90, 180, 270 deg)
     m_BuildRotation = (m_BuildRotation + delta + 4) % 4;
 
-    // For rotations 0 and 2 (0, 180 deg), use base footprint
-    // For rotations 1 and 3 (90, 270 deg), use swapped footprint
     if ((m_BuildRotation % 2) == 0) {
         m_BuildFootprint = m_BaseFootprint;
     }
@@ -97,7 +94,6 @@ void InputSystem::RotateBuildFootprint(int direction) {
     }
 }
 // --- END OF FIX ---
-
 std::optional<ecs::Entity> InputSystem::GetHighlighter() {
     for (auto const& entity : m_Entities) {
         return entity;
@@ -176,7 +172,7 @@ void InputSystem::UpdateHighlighter() {
         glm::vec3 worldPos = gridSystem->GridToWorld(anchorGridPos.x, anchorGridPos.y);
 
         float yOffset = 0.01f;
-        if (m_BuildMeshType == MeshType::Cube || m_BuildMeshType == MeshType::Turret || m_BuildMeshType == MeshType::Sphere) {
+        if (m_BuildMeshType == MeshType::Cube || m_BuildMeshType == MeshType::Sphere) {
             yOffset = 0.5f;
         }
 
@@ -216,7 +212,7 @@ void InputSystem::HandleMouseClick() {
                 auto building = m_Registry->CreateEntity();
 
                 float yOffset = 0.0f;
-                if (m_BuildMeshType == MeshType::Cube || m_BuildMeshType == MeshType::Turret || m_BuildMeshType == MeshType::Sphere) {
+                if (m_BuildMeshType == MeshType::Cube || m_BuildMeshType == MeshType::Sphere) {
                     yOffset = 0.5f;
                 }
                 glm::vec3 buildPos = { h_transform.position.x, yOffset, h_transform.position.z };
@@ -224,7 +220,7 @@ void InputSystem::HandleMouseClick() {
                 m_Registry->AddComponent(building, TransformComponent{
                     buildPos,
                     h_transform.scale,
-                    h_transform.rotation // <-- This now correctly copies the {0, 90, 180, 270} rotation
+                    h_transform.rotation //0 90 180 270 loop
                     });
 
                 glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -234,24 +230,24 @@ void InputSystem::HandleMouseClick() {
                 m_Registry->AddComponent(building, RenderComponent{ color });
                 m_Registry->AddComponent(building, MeshComponent{ m_BuildMeshType });
                 m_Registry->AddComponent(building, BuildingComponent{ m_BuildBuildingType });
-
+                m_Registry->AddComponent(building, CollisionComponent{ 0.5f });
                 
 
                 if (m_BuildBuildingType == BuildingType::Base) {
                     m_Game->OnBasePlaced(buildPos);
-                    m_Registry->AddComponent(building, HealthComponent{ 500.0f, 500.0f });
+                    m_Registry->AddComponent(building, HealthComponent{ 500, 500 });
                 }
                 else if (m_BuildBuildingType == BuildingType::ResourceNode) {
                     m_Registry->AddComponent(building, ResourceGeneratorComponent{});
-                    m_Registry->AddComponent(building, HealthComponent{ 50.0f, 50.0f });
+                    m_Registry->AddComponent(building, HealthComponent{ 50, 50 });
                 }
                 else if (m_BuildBuildingType == BuildingType::Turret) {
                     m_Registry->AddComponent(building, TurretAIComponent{});
-                    m_Registry->AddComponent(building, HealthComponent{ 100.0f, 100.0f });
+                    m_Registry->AddComponent(building, HealthComponent{ 100, 100 });
                 }
                 else if (m_BuildBuildingType == BuildingType::Bomb) {
                     m_Registry->AddComponent(building, BombComponent{});
-                    m_Registry->AddComponent(building, HealthComponent{ 1.0f, 1.0f }); // 1 HP
+                    m_Registry->AddComponent(building, HealthComponent{ 1, 1 }); // 1 HP
                 }
 
 
@@ -306,5 +302,9 @@ void InputSystem::HandleMouseClick() {
         else {
             h_render.color.a = 0.0f;
         }
+    }
+
+    else if (m_CurrentMode == InputMode::REMOVE) {
+
     }
 }

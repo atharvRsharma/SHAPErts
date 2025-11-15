@@ -36,25 +36,36 @@ public:
             auto& transform = m_Registry->GetComponent<TransformComponent>(entity);
             auto& movement = m_Registry->GetComponent<MovementComponent>(entity);
 
-
-            //check is target dead, if yes move on
+            // 1. Check if our current target is dead
             if (movement.targetEntity != ecs::MAX_ENTITIES && !registry->HasComponent<HealthComponent>(movement.targetEntity)) {
-                movement.targetEntity = ecs::MAX_ENTITIES; // It's dead, find a new one
+                movement.targetEntity = ecs::MAX_ENTITIES;
                 movement.isAttacking = false;
                 movement.path.clear();
             }
 
-            //if idle, try to find and engage target
-            bool isIdle = (movement.path.empty() || movement.currentPathIndex >= movement.path.size());
+            bool isIdle = movement.path.empty() || movement.currentPathIndex >= movement.path.size();
+
+            // --- THIS IS THE "CLOSEST" TARGET FIX ---
+            // 2. If we are idle (no target, not attacking), find a new, *closest* target
             if (movement.targetEntity == ecs::MAX_ENTITIES && isIdle && doRepath)
             {
-                //pillaging logic, lock onto target and go to town
-                std::uniform_int_distribution<int> dist(0, targets.size() - 1);
-                ecs::Entity randomTarget = targets[dist(m_RandomEngine)];
-                movement.targetEntity = randomTarget; // <-- LOCK ON
+                // "Pillaging" AI: Find Closest Target
+                ecs::Entity closestTarget = targets[0];
+                float minDistance = FLT_MAX;
+
+                for (auto const& targetEntity : targets) {
+                    auto& targetTransform = registry->GetComponent<TransformComponent>(targetEntity);
+                    float dist = glm::distance(transform.position, targetTransform.position);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestTarget = targetEntity;
+                    }
+                }
+                movement.targetEntity = closestTarget; // <-- LOCK ON
+                // --- END OF FIX ---
 
                 glm::ivec2 startTile = m_GridSystem->WorldToGrid(transform.position);
-                glm::ivec2 endTile = m_GridSystem->WorldToGrid(registry->GetComponent<TransformComponent>(randomTarget).position);
+                glm::ivec2 endTile = m_GridSystem->WorldToGrid(registry->GetComponent<TransformComponent>(closestTarget).position);
 
                 movement.path = Pathfinder::FindPath(m_GridSystem, startTile, endTile);
                 movement.currentPathIndex = 0;
@@ -63,7 +74,7 @@ public:
                     std::cout << "Enemy " << entity << " COULD NOT FIND PATH" << std::endl;
                 }
                 else {
-                    std::cout << "Enemy " << entity << " acquired new target " << randomTarget << "!" << std::endl;
+                    std::cout << "Enemy " << entity << " acquired new target " << closestTarget << "!" << std::endl;
                 }
             }
         }

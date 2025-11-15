@@ -6,7 +6,7 @@
 
 int main() {
     try {
-        Game game(1280, 720, "mr frog");
+        Game game(1920, 1080, "mr frog");
         game.Run();
     }
     catch (const std::exception& e) {

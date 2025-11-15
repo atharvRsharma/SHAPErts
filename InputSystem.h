@@ -14,7 +14,8 @@ class GridSystem;
 
 enum class InputMode {
     SELECT,
-    BUILD
+    BUILD,
+    REMOVE
 };
 
 class InputSystem : public ecs::System {

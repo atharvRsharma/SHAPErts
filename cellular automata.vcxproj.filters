@@ -149,6 +149,9 @@
     <ClInclude Include="ProjectileSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CollisionSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="simple.vert">

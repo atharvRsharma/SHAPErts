@@ -11,6 +11,7 @@
 #include "CombatSystem.h" 
 #include "BalanceSystem.h"
 #include "ProjectileSystem.h"
+#include "CollisionSystem.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -163,8 +164,10 @@ void Game::SpawnEnemyAt(glm::vec3 position) {
         });
     m_Registry->AddComponent(enemy, RenderComponent{ {0.8f, 0.2f, 0.8f, 1.0f} }); // Purple
     m_Registry->AddComponent(enemy, MeshComponent{ MeshType::Cube });
-    m_Registry->AddComponent(enemy, HealthComponent{ 50.0f, 50.0f });
+    m_Registry->AddComponent(enemy, HealthComponent{ 50, 50 });
     m_Registry->AddComponent(enemy, EnemyComponent{});
+
+    m_Registry->AddComponent(enemy, CollisionComponent{ 0.4f });
 
     MovementComponent move;
     move.speed = 3.0f;
@@ -231,6 +234,7 @@ void Game::Init() {
     m_Registry->RegisterComponent<TurretAIComponent>();
     m_Registry->RegisterComponent<BombComponent>();    
     m_Registry->RegisterComponent<ProjectileComponent>();
+    m_Registry->RegisterComponent<CollisionComponent>();
 
     // --- Register systems ---
     m_RenderSystem = m_Registry->RegisterSystem<RenderSystem>();
@@ -243,6 +247,7 @@ void Game::Init() {
     m_BalanceSystem = m_Registry->RegisterSystem<BalanceSystem>(); 
     m_CombatSystem = m_Registry->RegisterSystem<CombatSystem>();
     m_ProjectileSystem = m_Registry->RegisterSystem<ProjectileSystem>();
+    m_CollisionSystem = m_Registry->RegisterSystem<CollisionSystem>();
 
     // --- (Set All Signatures) ---
     ecs::Signature renderSig;
@@ -287,6 +292,11 @@ void Game::Init() {
     projectileSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
     projectileSig.set(m_Registry->GetComponentTypeID<ProjectileComponent>());
     m_Registry->SetSystemSignature<ProjectileSystem>(projectileSig);
+
+    ecs::Signature collisionSig;
+    collisionSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
+    collisionSig.set(m_Registry->GetComponentTypeID<CollisionComponent>());
+    m_Registry->SetSystemSignature<CollisionSystem>(collisionSig);
 
     // --- (End Signatures) ---
 
@@ -366,7 +376,6 @@ void Game::Run() {
         case AppState::PLAYING:
         {
             while (accumulator >= dt) {
-                // --- UPDATE ALL SYSTEMS ---
                 m_ResourceSystem->Update((float)dt);
                 m_UISystem->Update((float)dt);
 
@@ -375,16 +384,16 @@ void Game::Run() {
                 }
 
                 if (m_BasePlaced) {
-                    // --- NEW: Get entity lists ---
                     auto& enemyEntities = m_EnemyAISystem->m_Entities;
                     auto& renderableEntities = m_RenderSystem->m_Entities;
 
-                    // --- Run AI and Combat ---
                     m_EnemyAISystem->Update((float)dt, m_Registry.get(), renderableEntities);
                     m_CombatSystem->Update((float)dt, m_Registry.get(), enemyEntities, renderableEntities);
                     m_ProjectileSystem->Update((float)dt, m_Registry.get(), enemyEntities);
                 }
+
                 m_MovementSystem->Update((float)dt);
+                m_CollisionSystem->Update((float)dt, m_GridSystem.get());
 
                 accumulator -= dt;
                 t += dt;

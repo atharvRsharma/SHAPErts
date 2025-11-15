@@ -80,7 +80,7 @@ public:
             m_Meshes[MeshType::Quad] = std::make_shared<Mesh>("plane.txt");
             m_Meshes[MeshType::Cube] = std::make_shared<Mesh>("cube.txt");
             m_Meshes[MeshType::Pyramid] = std::make_shared<Mesh>("pyr.txt");
-            m_Meshes[MeshType::Turret] = std::make_shared<Mesh>("turret.obj");
+            m_Meshes[MeshType::Turret] = std::make_shared<Mesh>("finalTurret.obj");
             m_Meshes[MeshType::Sphere] = std::make_shared<Mesh>("sphere.txt");
         }
         catch (const std::exception& e) {
