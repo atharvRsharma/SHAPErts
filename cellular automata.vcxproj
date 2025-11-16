@@ -197,8 +197,10 @@
     <ClInclude Include="UISystem.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="simple.frag" />
-    <None Include="simple.vert" />
+    <None Include="actor.frag" />
+    <None Include="actor.vert" />
+    <None Include="highlighter.frag" />
+    <None Include="highlighter.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -20,35 +20,70 @@ public:
         glUseProgram(ID);
     }
 
-    // Compiles the shader from given source code
-    bool Compile(const char* vertexSource, const char* fragmentSource) {
-        unsigned int sVertex, sFragment;
+    // --- THIS IS THE FIX ---
+    // This function now correctly reads from file paths
+    void Compile(const char* vertexPath, const char* fragmentPath) {
 
-        // Vertex Shader
-        sVertex = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(sVertex, 1, &vertexSource, NULL);
-        glCompileShader(sVertex);
-        if (!checkCompileErrors(sVertex, "VERTEX")) return false;
+        // 1. retrieve the vertex/fragment source code from filePath
+        std::string vertexCode;
+        std::string fragmentCode;
+        std::ifstream vShaderFile;
+        std::ifstream fShaderFile;
+        // ensure ifstream objects can throw exceptions:
+        vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        try
+        {
+            // open files
+            vShaderFile.open(vertexPath);
+            fShaderFile.open(fragmentPath);
+            std::stringstream vShaderStream, fShaderStream;
+            // read file's buffer contents into streams
+            vShaderStream << vShaderFile.rdbuf();
+            fShaderStream << fShaderFile.rdbuf();
+            // close file handlers
+            vShaderFile.close();
+            fShaderFile.close();
+            // convert stream into string
+            vertexCode = vShaderStream.str();
+            fragmentCode = fShaderStream.str();
+        }
+        catch (std::ifstream::failure& e)
+        {
+            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+            std::cout << "Paths: " << vertexPath << ", " << fragmentPath << std::endl;
+            ID = 0; // Set ID to 0 to indicate failure
+            return;
+        }
+        const char* vShaderCode = vertexCode.c_str();
+        const char* fShaderCode = fragmentCode.c_str();
 
-        // Fragment Shader
-        sFragment = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(sFragment, 1, &fragmentSource, NULL);
-        glCompileShader(sFragment);
-        if (!checkCompileErrors(sFragment, "FRAGMENT")) return false;
+        // 2. compile shaders
+        unsigned int vertex, fragment;
+        // vertex shader
+        vertex = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vertex, 1, &vShaderCode, NULL);
+        glCompileShader(vertex);
+        if (!checkCompileErrors(vertex, "VERTEX")) { ID = 0; return; }
 
-        // Shader Program
-        this->ID = glCreateProgram();
-        glAttachShader(this->ID, sVertex);
-        glAttachShader(this->ID, sFragment);
-        glLinkProgram(this->ID);
-        if (!checkCompileErrors(this->ID, "PROGRAM")) return false;
+        // fragment Shader
+        fragment = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fragment, 1, &fShaderCode, NULL);
+        glCompileShader(fragment);
+        if (!checkCompileErrors(fragment, "FRAGMENT")) { ID = 0; return; }
 
-        // Delete the shaders as they're linked into our program now and no longer necessary
-        glDeleteShader(sVertex);
-        glDeleteShader(sFragment);
+        // shader Program
+        ID = glCreateProgram();
+        glAttachShader(ID, vertex);
+        glAttachShader(ID, fragment);
+        glLinkProgram(ID);
+        if (!checkCompileErrors(ID, "PROGRAM")) { ID = 0; return; }
 
-        return true;
+        // delete the shaders as they're linked into our program now and no longer necessary
+        glDeleteShader(vertex);
+        glDeleteShader(fragment);
     }
+    // --- END OF FIX ---
 
     // Utility uniform functions
     void SetBool(const std::string& name, bool value) const {
