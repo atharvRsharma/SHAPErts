@@ -15,16 +15,14 @@ public:
 
     bool IsTileOccupied(int x, int y) const {
         if (!IsValidTile(x, y)) {
-            return true; // Out of bounds is "occupied"
+            return true; //consider out of bounds to be occupied
         }
         return m_Occupied[x][y];
     }
 
-    // --- NEW: Helper for A* ---
     bool IsWalkable(int x, int y) const {
         return IsValidTile(x, y) && !m_Occupied[x][y];
     }
-    // ---
 
     void SetTileOccupied(int x, int y, bool isOccupied) {
         if (IsValidTile(x, y)) {
@@ -39,7 +37,7 @@ public:
     glm::vec3 GridToWorld(int x, int y) const {
         float posX = (float)x - (float)GRID_WIDTH / 2.0f + 0.5f;
         float posZ = (float)y - (float)GRID_HEIGHT / 2.0f + 0.5f;
-        return { posX, 0.0f, posZ }; // Return Y=0 for pathfinding
+        return { posX, 0.0f, posZ };
     }
 
     glm::ivec2 WorldToGrid(const glm::vec3& worldPos) const {

@@ -174,6 +174,8 @@ Game::Game(int width, int height, const std::string& title)
 
 Game::~Game() { Cleanup(); }
 
+//TODO fix the setappstate, as it prints even wout placing base, only going from paused to unpaused
+
 void Game::SetAppState(AppState newState) {
     m_CurrentState = newState;
     if (m_CurrentState == AppState::PLAYING) {
@@ -407,32 +409,36 @@ void Game::Init() {
 
 void Game::ToggleGodMode()
 {
-    m_IsGodMode = !m_IsGodMode;
-    m_CheatCodeBuffer.clear();
-    m_IsPanning = false;
-    m_IsOrbiting = false;
 
-    if (m_IsGodMode) {
-        m_PreGodModeTarget = m_OrbitCamera.GetTarget();
-        m_PreGodModeDistance = m_OrbitCamera.GetDistance();
+    if (m_CurrentState == AppState::PLAYING) {
+        m_IsGodMode = !m_IsGodMode;
+        m_CheatCodeBuffer.clear();
+        m_IsPanning = false;
+        m_IsOrbiting = false;
 
-        m_FlyCamera.Position = m_OrbitCamera.GetPosition();
-        glm::vec3 direction = glm::normalize(m_OrbitCamera.GetTarget() - m_OrbitCamera.GetPosition());
-        m_FlyCamera.Yaw = glm::degrees(atan2(direction.z, direction.x));
-        m_FlyCamera.Pitch = glm::degrees(asin(direction.y));
-        m_FlyCamera.updateCameraVectors();
+        if (m_IsGodMode) {
+            m_PreGodModeTarget = m_OrbitCamera.GetTarget();
+            m_PreGodModeDistance = m_OrbitCamera.GetDistance();
 
-        glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        glfwGetCursorPos(m_Window, &m_LastMouseX, &m_LastMouseY);
-        std::cout << "FREE CAM ACTIVATED" << std::endl;
+            m_FlyCamera.Position = m_OrbitCamera.GetPosition();
+            glm::vec3 direction = glm::normalize(m_OrbitCamera.GetTarget() - m_OrbitCamera.GetPosition());
+            m_FlyCamera.Yaw = glm::degrees(atan2(direction.z, direction.x));
+            m_FlyCamera.Pitch = glm::degrees(asin(direction.y));
+            m_FlyCamera.updateCameraVectors();
+
+            glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            glfwGetCursorPos(m_Window, &m_LastMouseX, &m_LastMouseY);
+            std::cout << "FREE CAM ACTIVATED" << std::endl;
+        }
+        else {
+            m_OrbitCamera.SetTarget(m_PreGodModeTarget);
+            m_OrbitCamera.SetDistance(m_PreGodModeDistance);
+
+            glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            std::cout << "FREE CAM DEACTIVATED" << std::endl;
+        }
     }
-    else {
-        m_OrbitCamera.SetTarget(m_PreGodModeTarget);
-        m_OrbitCamera.SetDistance(m_PreGodModeDistance);
-
-        glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        std::cout << "FREE CAM DEACTIVATED" << std::endl;
-    }
+    
 }
 
 
@@ -455,14 +461,13 @@ void Game::Run() {
         int w, h;
         glfwGetFramebufferSize(m_Window, &w, &h);
         if (w == 0 || h == 0) {
-            continue; // Skip the rest of the loop
+            continue; //if minimised, skip rest of loop
         }
 
         switch (m_CurrentState) {
         case AppState::PLAYING:
         {
             while (accumulator >= dt) {
-                // --- (Simulation logic...) ---
                 m_ResourceSystem->Update((float)dt);
                 m_UISystem->Update((float)dt);
                 if (!m_IsGodMode) {
@@ -481,19 +486,16 @@ void Game::Run() {
                 accumulator -= dt;
                 t += dt;
             }
-            break; // Break from the 'while'
+            break; 
         }
         case AppState::PAUSED:
         {
             m_UISystem->Update((float)dt);
             accumulator = 0.0;
-            break; // Break from the 'switch'
+            break;
         }
         }
 
-        // --- THIS IS THE "GREY TAB" FIX ---
-        // Render() is now called *after* the switch,
-        // so it runs in *both* PLAYING and PAUSED states.
         Render();
     }
 }

@@ -9,7 +9,7 @@
 #include <iostream>
 #include <optional>
 #include <algorithm>
-#include <set> // For queueing explosions
+#include <set> 
 
 class CombatSystem : public ecs::System {
 public:
@@ -24,7 +24,6 @@ public:
        
         UpdateTurrets(dt, registry, allEnemies);
 
-        // --- (Enemy, Bomb, Explosion, Death logic is all unchanged) ---
         UpdateEnemies(dt, registry, allEnemies);
         UpdateBombs(dt, registry, allEnemies, allRenderableEntities);
         CheckForDeaths(registry, allRenderableEntities);
@@ -79,7 +78,7 @@ private:
         auto& turret = m_Registry->GetComponent<TurretAIComponent>(turretEntity);
         auto& transform = m_Registry->GetComponent<TransformComponent>(turretEntity);
         float closestDist = turret.range + 1.0f;
-        std::optional<ecs::Entity> bestTarget = std::nullopt; // Start with no target
+        std::optional<ecs::Entity> bestTarget = std::nullopt;
 
         for (auto const& enemyEntity : allEnemies) {
             if (!registry->HasComponent<HealthComponent>(enemyEntity)) continue;
@@ -146,12 +145,12 @@ private:
                     return false;
                 }
             }
-            if (x0 == x1 && y0 == y1) break; // Reached target
+            if (x0 == x1 && y0 == y1) break; 
             e2 = 2 * err;
             if (e2 >= dy) { err += dy; x0 += sx; }
             if (e2 <= dx) { err += dx; y0 += sy; }
         }
-        return true; // No obstructions
+        return true; //no obstructions
     }
 
     void FireAtTarget(ecs::Registry* registry, glm::vec3 turretPos, glm::vec3 targetPos) {
@@ -168,8 +167,8 @@ private:
         registry->AddComponent(bullet, RenderComponent{ {1.0f, 0.5f, 0.0f, 1.0f} }); // Orange
         registry->AddComponent(bullet, MeshComponent{ MeshType::Sphere });
 
-        glm::vec3 velocity = glm::normalize(targetPos - turretPos) * 15.0f; // 15 units/sec
-        registry->AddComponent(bullet, ProjectileComponent{ velocity, 4 }); // 4 damage
+        glm::vec3 velocity = glm::normalize(targetPos - turretPos) * 15.0f; //15 units per sec
+        registry->AddComponent(bullet, ProjectileComponent{ velocity, 4 }); //4 damage
     }
 
     void UpdateEnemies(float dt, ecs::Registry* registry, const std::set<ecs::Entity>& allEnemies) {
@@ -222,9 +221,8 @@ private:
         }
     }
 
-    // --- UPDATED: OnEntityDied now handles explosions ---
     void OnEntityDied(ecs::Registry* registry, ecs::Entity entity) {
-        if (!registry->HasComponent<HealthComponent>(entity)) return; // Already processed
+        if (!registry->HasComponent<HealthComponent>(entity)) return; 
 
         if (registry->HasComponent<EnemyComponent>(entity)) {
             std::cout << "Enemy " << entity << " was destroyed!" << std::endl;
@@ -242,8 +240,6 @@ private:
                 std::cout << "GAME OVER: Your base was destroyed!" << std::endl;
             }
 
-            // --- THIS IS THE FIX ---
-            // Free up its grid tiles (This now works for bombs too)
             glm::ivec2 anchor = m_GridSystem->WorldToGrid(transform.position -
                 glm::vec3((transform.scale.x / 2.0f) - 0.5f, 0.0f, (transform.scale.z / 2.0f) - 0.5f));
 
@@ -259,15 +255,15 @@ private:
                 }
             }
 
-            // --- NEW: Check if the building that died was a bomb ---
+            //check if destroyed buildignd were bombs
             if (registry->HasComponent<BombComponent>(entity)) {
                 std::cout << "BOMB " << entity << " EXPLODES!" << std::endl;
                 auto& bomb = registry->GetComponent<BombComponent>(entity);
 
-                // Find *all* entities with health
+                //find all surrounding entities with health and damage em
                 for (ecs::Entity target = 0; target < ecs::MAX_ENTITIES; ++target) {
                     if (!registry->HasComponent<HealthComponent>(target)) continue;
-                    if (target == entity) continue; // Don't damage self
+                    if (target == entity) continue; 
 
                     auto& targetT = registry->GetComponent<TransformComponent>(target);
                     if (glm::distance(transform.position, targetT.position) < bomb.blastRadius) {
@@ -276,7 +272,6 @@ private:
                     }
                 }
             }
-            // --- END OF FIX ---
         }
 
         registry->DestroyEntity(entity);
