@@ -19,15 +19,15 @@ public:
     ~RenderSystem() {}
 
     void Init() {
-        m_Shader.Compile("actor.vert", "actor.frag");
-        m_GhostShader.Compile("highlighter.vert", "highlighter.frag");
+        m_Shader.Compile("shaders/actor.vert", "shaders/actor.frag");
+        m_GhostShader.Compile("shaders/highlighter.vert", "shaders/highlighter.frag");
 
         try {
-            m_Meshes[MeshType::Quad] = std::make_shared<Mesh>("plane.txt");
-            m_Meshes[MeshType::Cube] = std::make_shared<Mesh>("cube.txt");
-            m_Meshes[MeshType::Pyramid] = std::make_shared<Mesh>("pyr.txt");
-            m_Meshes[MeshType::Turret] = std::make_shared<Mesh>("finalTurret.obj");
-            m_Meshes[MeshType::Sphere] = std::make_shared<Mesh>("sphere.txt");
+            m_Meshes[MeshType::Quad] = std::make_shared<Mesh>("miscellaneous/plane.txt");
+            m_Meshes[MeshType::Cube] = std::make_shared<Mesh>("miscellaneous/cube.txt");
+            m_Meshes[MeshType::Pyramid] = std::make_shared<Mesh>("miscellaneous/pyr.txt");
+            m_Meshes[MeshType::Turret] = std::make_shared<Mesh>("miscellaneous/finalTurret.obj");
+            m_Meshes[MeshType::Sphere] = std::make_shared<Mesh>("miscellaneous/sphere.txt");
         }
         catch (const std::exception& e) {
             std::cerr << "mesh loading failure: " << e.what() << std::endl;

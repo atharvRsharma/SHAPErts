@@ -72,11 +72,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Programming\RTS\Libraries\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)headers;$(SolultionDir)Libraries\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Programming\RTS\Libraries\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Programming\RTS\Libraries\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)headers;$(SolultionDir)Libraries\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Programming\RTS\Libraries\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -150,8 +150,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="FileParser.cpp" />
-    <ClCompile Include="Game.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
@@ -160,24 +158,36 @@
     <ClCompile Include="imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
-    <ClCompile Include="InputSystem.cpp" />
-    <ClCompile Include="Main.cpp" />
-    <ClCompile Include="stb.cpp" />
+    <ClCompile Include="src\FileParser.cpp" />
+    <ClCompile Include="src\Game.cpp" />
+    <ClCompile Include="src\InputSystem.cpp" />
+    <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\stb.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BalanceSystem.h" />
-    <ClInclude Include="CollisionSystem.h" />
-    <ClInclude Include="CombatSystem.h" />
-    <ClInclude Include="Constants.h" />
-    <ClInclude Include="EnemyAISystem.h" />
-    <ClInclude Include="MovementSystem.h" />
-    <ClInclude Include="OrbitCamera.h" />
-    <ClInclude Include="Components.h" />
-    <ClInclude Include="ECS.h" />
-    <ClInclude Include="FileParser.h" />
-    <ClInclude Include="FlyCamera.h" />
-    <ClInclude Include="Game.h" />
-    <ClInclude Include="GridSystem.h" />
+    <ClInclude Include="headers\BalanceSystem.h" />
+    <ClInclude Include="headers\CollisionSystem.h" />
+    <ClInclude Include="headers\CombatSystem.h" />
+    <ClInclude Include="headers\Components.h" />
+    <ClInclude Include="headers\Constants.h" />
+    <ClInclude Include="headers\ECS.h" />
+    <ClInclude Include="headers\EnemyAISystem.h" />
+    <ClInclude Include="headers\FileParser.h" />
+    <ClInclude Include="headers\FlyCamera.h" />
+    <ClInclude Include="headers\Frustum.h" />
+    <ClInclude Include="headers\Game.h" />
+    <ClInclude Include="headers\GridSystem.h" />
+    <ClInclude Include="headers\InputSystem.h" />
+    <ClInclude Include="headers\Mesh.h" />
+    <ClInclude Include="headers\MovementSystem.h" />
+    <ClInclude Include="headers\OrbitCamera.h" />
+    <ClInclude Include="headers\Pathfinder.h" />
+    <ClInclude Include="headers\Primitives.h" />
+    <ClInclude Include="headers\ProjectileSystem.h" />
+    <ClInclude Include="headers\RenderSystem.h" />
+    <ClInclude Include="headers\ResourceSystem.h" />
+    <ClInclude Include="headers\Shader.h" />
+    <ClInclude Include="headers\UISystem.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
     <ClInclude Include="imgui\imgui_impl_glfw.h" />
@@ -187,21 +197,13 @@
     <ClInclude Include="imgui\imstb_rectpack.h" />
     <ClInclude Include="imgui\imstb_textedit.h" />
     <ClInclude Include="imgui\imstb_truetype.h" />
-    <ClInclude Include="InputSystem.h" />
-    <ClInclude Include="Mesh.h" />
-    <ClInclude Include="Pathfinder.h" />
-    <ClInclude Include="Primitives.h" />
-    <ClInclude Include="ProjectileSystem.h" />
-    <ClInclude Include="RenderSystem.h" />
-    <ClInclude Include="ResourceSystem.h" />
-    <ClInclude Include="Shader.h" />
-    <ClInclude Include="UISystem.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="actor.frag" />
-    <None Include="actor.vert" />
     <None Include="highlighter.frag" />
-    <None Include="highlighter.vert" />
+    <None Include="shaders\actor.frag" />
+    <None Include="shaders\actor.vert" />
+    <None Include="shaders\highlighter.frag" />
+    <None Include="shaders\highlighter.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

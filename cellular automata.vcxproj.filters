@@ -45,19 +45,19 @@
     <ClCompile Include="glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Game.cpp">
+    <ClCompile Include="src\FileParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Main.cpp">
+    <ClCompile Include="src\InputSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FileParser.cpp">
+    <ClCompile Include="src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="InputSystem.cpp">
+    <ClCompile Include="src\stb.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stb.cpp">
+    <ClCompile Include="src\Game.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -89,85 +89,91 @@
     <ClInclude Include="imgui\imgui.h">
       <Filter>Header Files\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="Game.h">
+    <ClInclude Include="headers\BalanceSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ECS.h">
+    <ClInclude Include="headers\CollisionSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Components.h">
+    <ClInclude Include="headers\CombatSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shader.h">
+    <ClInclude Include="headers\Components.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RenderSystem.h">
+    <ClInclude Include="headers\Constants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UISystem.h">
+    <ClInclude Include="headers\ECS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="InputSystem.h">
+    <ClInclude Include="headers\EnemyAISystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="OrbitCamera.h">
+    <ClInclude Include="headers\FileParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ResourceSystem.h">
+    <ClInclude Include="headers\FlyCamera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GridSystem.h">
+    <ClInclude Include="headers\Frustum.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FileParser.h">
+    <ClInclude Include="headers\Game.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Primitives.h">
+    <ClInclude Include="headers\GridSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh.h">
+    <ClInclude Include="headers\InputSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FlyCamera.h">
+    <ClInclude Include="headers\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MovementSystem.h">
+    <ClInclude Include="headers\MovementSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EnemyAISystem.h">
+    <ClInclude Include="headers\OrbitCamera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Pathfinder.h">
+    <ClInclude Include="headers\Pathfinder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BalanceSystem.h">
+    <ClInclude Include="headers\Primitives.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CombatSystem.h">
+    <ClInclude Include="headers\ProjectileSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ProjectileSystem.h">
+    <ClInclude Include="headers\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CollisionSystem.h">
+    <ClInclude Include="headers\UISystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Constants.h">
+    <ClInclude Include="headers\RenderSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\ResourceSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="actor.frag">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="actor.vert">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="highlighter.vert">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="highlighter.frag">
       <Filter>Source Files\imgui</Filter>
+    </None>
+    <None Include="shaders\actor.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\actor.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\highlighter.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\highlighter.vert">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
 </Project>

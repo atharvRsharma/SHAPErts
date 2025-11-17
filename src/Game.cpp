@@ -196,7 +196,7 @@ void Game::SetWindowMode(bool fullscreen) {
     else {
         //... windowed mode
         glfwSetWindowAttrib(m_Window, GLFW_DECORATED, GLFW_TRUE);
-        glfwSetWindowPos(m_Window, 100, 100); // Default windowed pos
+        glfwSetWindowPos(m_Window, 100, 100);
         glfwSetWindowSize(m_Window, m_WindowedWidth, m_WindowedHeight);
     }
 }
@@ -263,7 +263,7 @@ void Game::Init() {
 
 
     GLFWimage images[1];
-    images[0].pixels = stbi_load("gear.png", &images[0].width, &images[0].height, 0, 4);
+    images[0].pixels = stbi_load("miscellaneous/gear.png", &images[0].width, &images[0].height, 0, 4);
     glfwSetWindowIcon(m_Window, 1, images);
     stbi_image_free(images[0].pixels);
 
