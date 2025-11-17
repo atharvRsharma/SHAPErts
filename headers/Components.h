@@ -9,7 +9,7 @@ enum class MeshType {
     None,
     Quad,
     Cube,
-    Pyramid,
+    Base,
     Turret,
     Sphere,
     Capsule

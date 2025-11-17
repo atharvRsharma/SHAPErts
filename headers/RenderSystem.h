@@ -25,7 +25,7 @@ public:
         try {
             m_Meshes[MeshType::Quad] = std::make_shared<Mesh>("miscellaneous/plane.txt");
             m_Meshes[MeshType::Cube] = std::make_shared<Mesh>("miscellaneous/cube.txt");
-            m_Meshes[MeshType::Pyramid] = std::make_shared<Mesh>("miscellaneous/pyr.txt");
+            m_Meshes[MeshType::Base] = std::make_shared<Mesh>("miscellaneous/castle.obj");
             m_Meshes[MeshType::Turret] = std::make_shared<Mesh>("miscellaneous/finalTurret.obj");
             m_Meshes[MeshType::Sphere] = std::make_shared<Mesh>("miscellaneous/sphere.txt");
         }
@@ -93,7 +93,10 @@ private:
             finalScale *= 0.5f;
         }
         if (meshComp.type == MeshType::Turret) {
-            finalScale *= 0.5f;
+            finalScale *= 0.3f;
+        }
+        if (meshComp.type == MeshType::Base) {
+            finalScale *= 0.15f;
         }
         model = glm::scale(model, finalScale);
 

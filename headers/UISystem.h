@@ -183,7 +183,7 @@ private:
                 if (!canAfford) ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 
                 if (ImGui::Button("Home Base [100]", ImVec2(-1, 0)) && canAfford) {
-                    inputSystem->EnterBuildMode(BuildingType::Base, MeshType::Pyramid, BASE_COST, { 2, 2 });
+                    inputSystem->EnterBuildMode(BuildingType::Base, MeshType::Base, BASE_COST, { 2, 2 });
                 }
 
                 if (!canAfford) ImGui::PopStyleVar();

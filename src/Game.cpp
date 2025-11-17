@@ -23,6 +23,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+
+
 void glfw_error_callback(int error, const char* description) {
     std::cerr << "GLFW Error (" << error << "): " << description << std::endl;
 }
@@ -122,8 +124,7 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
     if (!game || action != GLFW_PRESS) return;
 
-    // --- Pause Logic ---
-    if (key == GLFW_KEY_ESCAPE) { // Changed to ESCAPE
+    if (key == GLFW_KEY_ESCAPE) { 
         if (game->m_CurrentState == AppState::PLAYING) {
             game->SetAppState(AppState::PAUSED);
             glfwSetInputMode(game->m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -139,11 +140,9 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
         return;
     }
 
-    // --- Cheat Code Buffers ---
     game->m_CheatCodeBuffer.push_back(key);
     game->m_ToggleFullscreenBuffer.push_back(key);
 
-    // --- God Mode Check ---
     if (game->m_CheatCodeBuffer.size() > game->m_GodModeCode.size()) {
         game->m_CheatCodeBuffer.erase(game->m_CheatCodeBuffer.begin());
     }
@@ -151,14 +150,12 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
         game->ToggleGodMode();
     }
 
-    // --- THIS IS THE FIX (Fullscreen Toggle) ---
     if (game->m_ToggleFullscreenBuffer.size() > game->m_ToggleFullscreenCode.size()) {
         game->m_ToggleFullscreenBuffer.erase(game->m_ToggleFullscreenBuffer.begin());
     }
     if (game->m_ToggleFullscreenBuffer == game->m_ToggleFullscreenCode) {
         game->SetWindowMode(!game->m_IsBorderless);
     }
-    // --- END OF FIX ---
 }
 
 
@@ -218,7 +215,7 @@ void Game::SpawnEnemyAt(glm::vec3 position) {
     auto enemy = m_Registry->CreateEntity();
     m_Registry->AddComponent(enemy, TransformComponent{
         position,
-        {0.4f, 0.4f, 0.4f},
+        glm::vec3{0.12f},
         {0.0f, 0.0f, 0.0f}
         });
     m_Registry->AddComponent(enemy, RenderComponent{ {0.8f, 0.2f, 0.8f, 1.0f} }); 
@@ -263,7 +260,7 @@ void Game::Init() {
 
 
     GLFWimage images[1];
-    images[0].pixels = stbi_load("miscellaneous/gear.png", &images[0].width, &images[0].height, 0, 4);
+    images[0].pixels = stbi_load("miscellaneous/icon.png", &images[0].width, &images[0].height, 0, 4);
     glfwSetWindowIcon(m_Window, 1, images);
     stbi_image_free(images[0].pixels);
 
