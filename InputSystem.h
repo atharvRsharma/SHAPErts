@@ -14,8 +14,7 @@ class GridSystem;
 
 enum class InputMode {
     SELECT,
-    BUILD,
-    REMOVE
+    BUILD
 };
 
 class InputSystem : public ecs::System {
@@ -54,9 +53,11 @@ private:
     glm::ivec2 m_BaseFootprint = { 1, 1 };
     glm::ivec2 m_BuildFootprint = { 1, 1 };
 
-    // --- FIX: This is now 0, 1, 2, or 3 ---
     int m_BuildRotation = 0;
     bool m_LastPlacementValid = false;
+    glm::ivec2 m_LastValidGridPos = { 0,0 };
+    float m_MouseIdleTimer = 0.0f;         
+    glm::vec2 m_LastMousePos = { 0,0 };
 
     glm::vec3 ScreenToWorldRay(double xpos, double ypos);
     std::optional<glm::vec3> IntersectRayWithPlane(const glm::vec3& rayOrigin, const glm::vec3& rayDirection);

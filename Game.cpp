@@ -13,6 +13,8 @@
 #include "ProjectileSystem.h"
 #include "CollisionSystem.h"
 
+#include <stb/stb_image.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -21,12 +23,15 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-// --- (All callbacks are unchanged and correct) ---
 void glfw_error_callback(int error, const char* description) {
     std::cerr << "GLFW Error (" << error << "): " << description << std::endl;
 }
 
 void Game::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    if (width == 0 || height == 0) {
+        return;
+    }
+
     glViewport(0, 0, width, height);
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
     if (game) {
@@ -42,6 +47,8 @@ void Game::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     if (ImGui::GetIO().WantCaptureMouse || !game) return;
 
     if (game->m_IsGodMode) return;
+
+    if (game->m_CurrentState == AppState::PAUSED) return;
 
     if (game->m_InputSystem->IsInBuildMode()) {
         game->m_InputSystem->RotateBuildFootprint(yoffset > 0 ? 1 : -1);
@@ -77,6 +84,8 @@ void Game::mouse_button_callback(GLFWwindow* window, int button, int action, int
             game->m_IsPanning = false;
         }
     }
+
+    if (game->m_CurrentState == AppState::PAUSED) return;
 }
 
 void Game::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
@@ -91,6 +100,8 @@ void Game::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
         game->m_LastMouseX = xpos;
         game->m_LastMouseY = ypos;
     }
+
+    if (game->m_CurrentState == AppState::PAUSED) return;
 
     if (game->m_IsGodMode)
     {
@@ -111,24 +122,52 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
     if (!game || action != GLFW_PRESS) return;
 
-    game->m_KeyCodeBuffer.push_back(key);
-
-    if (game->m_KeyCodeBuffer.size() > game->m_GodModeCode.size()) {
-        game->m_KeyCodeBuffer.erase(game->m_KeyCodeBuffer.begin());
+    if (key == GLFW_KEY_ESCAPE) {
+        if (game->m_CurrentState == AppState::PLAYING) {
+            game->SetAppState(AppState::PAUSED);
+            glfwSetInputMode(game->m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            std::cout << "Game Paused" << std::endl;
+        }
+        else if (game->m_CurrentState == AppState::PAUSED) {
+            game->SetAppState(AppState::PLAYING);
+            if (!game->m_IsGodMode) {
+                //uncomment to disable cursor in free cam
+                //glfwSetInputMode(game->m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            }
+            std::cout << "Game Resumed" << std::endl;
+        }
+        return; 
     }
 
-    if (game->m_KeyCodeBuffer == game->m_GodModeCode) {
+    game->m_CheatCodeBuffer.push_back(key);
+    game->m_ToggleFullscreenBuffer.push_back(key);
+
+    if (game->m_CheatCodeBuffer.size() > game->m_GodModeCode.size()) {
+        game->m_CheatCodeBuffer.erase(game->m_CheatCodeBuffer.begin());
+    }
+
+    if (game->m_CheatCodeBuffer == game->m_GodModeCode) {
         game->ToggleGodMode();
     }
+
+
+    if (game->m_ToggleFullscreenCode.size() > game->m_ToggleFullscreenCode.size()) {
+        game->m_ToggleFullscreenBuffer.erase(game->m_ToggleFullscreenCode.begin());
+    }
+
+    if (game->m_ToggleFullscreenBuffer == game->m_ToggleFullscreenCode) {
+        game->SetWindowMode(!game->m_IsBorderless);
+    }
 }
-// --- (End Callbacks) ---
+
 
 
 Game::Game(int width, int height, const std::string& title)
     : m_Window(nullptr), m_Width(width), m_Height(height), m_Title(title),
     m_OrbitCamera(glm::vec3(0.0f)),
     m_FlyCamera(glm::vec3(0.0f, 15.0f, 15.0f)),
-    m_CurrentState(AppState::PLAYING)
+    m_CurrentState(AppState::PLAYING),
+    m_WindowedWidth(width), m_WindowedHeight(height)
 {
     Init();
 }
@@ -139,6 +178,23 @@ void Game::SetAppState(AppState newState) {
     m_CurrentState = newState;
     if (m_CurrentState == AppState::PLAYING) {
         std::cout << "Base placed! Game is now PLAYING." << std::endl;
+    }
+}
+
+void Game::SetWindowMode(bool fullscreen) {
+    m_IsBorderless = fullscreen;
+    m_ToggleFullscreenBuffer.clear();
+    if (fullscreen) {
+        //set to borderless fullscr
+        glfwSetWindowAttrib(m_Window, GLFW_DECORATED, GLFW_FALSE);
+        glfwSetWindowPos(m_Window, 0, 0);
+        glfwSetWindowSize(m_Window, m_PrimaryMode->width, m_PrimaryMode->height);
+    }
+    else {
+        //... windowed mode
+        glfwSetWindowAttrib(m_Window, GLFW_DECORATED, GLFW_TRUE);
+        glfwSetWindowPos(m_Window, 100, 100); // Default windowed pos
+        glfwSetWindowSize(m_Window, m_WindowedWidth, m_WindowedHeight);
     }
 }
 
@@ -162,7 +218,7 @@ void Game::SpawnEnemyAt(glm::vec3 position) {
         {0.4f, 0.4f, 0.4f},
         {0.0f, 0.0f, 0.0f}
         });
-    m_Registry->AddComponent(enemy, RenderComponent{ {0.8f, 0.2f, 0.8f, 1.0f} }); // Purple
+    m_Registry->AddComponent(enemy, RenderComponent{ {0.8f, 0.2f, 0.8f, 1.0f} }); 
     m_Registry->AddComponent(enemy, MeshComponent{ MeshType::Cube });
     m_Registry->AddComponent(enemy, HealthComponent{ 50, 50 });
     m_Registry->AddComponent(enemy, EnemyComponent{});
@@ -185,15 +241,30 @@ void Game::Init() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    m_Window = glfwCreateWindow(m_Width, m_Height, m_Title.c_str(), nullptr, nullptr);
+    m_PrimaryMonitor = glfwGetPrimaryMonitor();
+    m_PrimaryMode = glfwGetVideoMode(m_PrimaryMonitor);
+
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+
+    m_Window = glfwCreateWindow(m_WindowedWidth, m_WindowedHeight, m_Title.c_str(), nullptr, nullptr);
     if (m_Window == nullptr) {
         glfwTerminate();
         return;
     }
+
+
+
+    GLFWimage images[1];
+    images[0].pixels = stbi_load("gear.png", &images[0].width, &images[0].height, 0, 4);
+    glfwSetWindowIcon(m_Window, 1, images);
+    stbi_image_free(images[0].pixels);
+
+
     glfwMakeContextCurrent(m_Window);
     glfwSetWindowUserPointer(m_Window, this);
     glfwSetFramebufferSizeCallback(m_Window, framebuffer_size_callback);
@@ -219,7 +290,7 @@ void Game::Init() {
 
     m_Registry = std::make_unique<ecs::Registry>();
 
-    // --- Register components ---
+    //register comps
     m_Registry->RegisterComponent<TransformComponent>();
     m_Registry->RegisterComponent<RenderComponent>();
     m_Registry->RegisterComponent<MeshComponent>();
@@ -236,7 +307,7 @@ void Game::Init() {
     m_Registry->RegisterComponent<ProjectileComponent>();
     m_Registry->RegisterComponent<CollisionComponent>();
 
-    // --- Register systems ---
+    //register systems
     m_RenderSystem = m_Registry->RegisterSystem<RenderSystem>();
     m_UISystem = m_Registry->RegisterSystem<UISystem>();
     m_InputSystem = m_Registry->RegisterSystem<InputSystem>();
@@ -249,7 +320,7 @@ void Game::Init() {
     m_ProjectileSystem = m_Registry->RegisterSystem<ProjectileSystem>();
     m_CollisionSystem = m_Registry->RegisterSystem<CollisionSystem>();
 
-    // --- (Set All Signatures) ---
+    //set signatures
     ecs::Signature renderSig;
     renderSig.set(m_Registry->GetComponentTypeID<TransformComponent>());
     renderSig.set(m_Registry->GetComponentTypeID<RenderComponent>());
@@ -285,7 +356,7 @@ void Game::Init() {
     combatSig.set(m_Registry->GetComponentTypeID<TurretAIComponent>());
     m_Registry->SetSystemSignature<CombatSystem>(combatSig);
 
-    ecs::Signature balanceSig; // Empty signature
+    ecs::Signature balanceSig;
     m_Registry->SetSystemSignature<BalanceSystem>(balanceSig);
 
     ecs::Signature projectileSig;
@@ -298,21 +369,28 @@ void Game::Init() {
     collisionSig.set(m_Registry->GetComponentTypeID<CollisionComponent>());
     m_Registry->SetSystemSignature<CollisionSystem>(collisionSig);
 
-    // --- (End Signatures) ---
-
-    // --- Init Systems ---
+   
     m_RenderSystem->Init();
     m_UISystem->Init(m_Registry.get());
     m_InputSystem->Init(m_Window, m_Registry.get(), this);
     m_InputSystem->SetWindowSize(m_Width, m_Height);
     m_GridSystem->Init();
 
-    m_BalanceSystem->Init(); // Init this first
+    m_BalanceSystem->Init(); 
     m_ResourceSystem->Init(m_BalanceSystem.get(), 1000.0);
     m_EnemyAISystem->Init(m_GridSystem.get());
     m_CombatSystem->Init(m_BalanceSystem.get(), m_ResourceSystem.get(), m_GridSystem.get());
-
     m_EnemyAISystem->Init(m_GridSystem.get());
+
+    
+
+    int w, h;
+    glfwGetFramebufferSize(m_Window, &w, &h);
+    glViewport(0, 0, w, h);
+    m_Width = w;
+    m_Height = h;
+    m_InputSystem->SetWindowSize(w, h);
+    
 
     auto grid = m_Registry->CreateEntity();
     m_Registry->AddComponent(grid, TransformComponent{ {0,0,0}, {20,1,20} });
@@ -330,7 +408,7 @@ void Game::Init() {
 void Game::ToggleGodMode()
 {
     m_IsGodMode = !m_IsGodMode;
-    m_KeyCodeBuffer.clear();
+    m_CheatCodeBuffer.clear();
     m_IsPanning = false;
     m_IsOrbiting = false;
 
@@ -346,16 +424,18 @@ void Game::ToggleGodMode()
 
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         glfwGetCursorPos(m_Window, &m_LastMouseX, &m_LastMouseY);
-        std::cout << "GOD MODE: ACTIVATED" << std::endl;
+        std::cout << "FREE CAM ACTIVATED" << std::endl;
     }
     else {
         m_OrbitCamera.SetTarget(m_PreGodModeTarget);
         m_OrbitCamera.SetDistance(m_PreGodModeDistance);
 
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        std::cout << "GOD MODE: DEACTIVATED" << std::endl;
+        std::cout << "FREE CAM DEACTIVATED" << std::endl;
     }
 }
+
+
 
 void Game::Run() {
     double t = 0.0;
@@ -372,45 +452,56 @@ void Game::Run() {
 
         ProcessInput((float)frameTime);
 
+        int w, h;
+        glfwGetFramebufferSize(m_Window, &w, &h);
+        if (w == 0 || h == 0) {
+            continue; // Skip the rest of the loop
+        }
+
         switch (m_CurrentState) {
         case AppState::PLAYING:
         {
             while (accumulator >= dt) {
+                // --- (Simulation logic...) ---
                 m_ResourceSystem->Update((float)dt);
                 m_UISystem->Update((float)dt);
-
                 if (!m_IsGodMode) {
                     m_InputSystem->Update();
                 }
-
                 if (m_BasePlaced) {
                     auto& enemyEntities = m_EnemyAISystem->m_Entities;
                     auto& renderableEntities = m_RenderSystem->m_Entities;
-
                     m_EnemyAISystem->Update((float)dt, m_Registry.get(), renderableEntities);
                     m_CombatSystem->Update((float)dt, m_Registry.get(), enemyEntities, renderableEntities);
                     m_ProjectileSystem->Update((float)dt, m_Registry.get(), enemyEntities);
                 }
-
                 m_MovementSystem->Update((float)dt);
                 m_CollisionSystem->Update((float)dt, m_GridSystem.get());
 
                 accumulator -= dt;
                 t += dt;
             }
-            Render();
-            break;
+            break; // Break from the 'while'
+        }
+        case AppState::PAUSED:
+        {
+            m_UISystem->Update((float)dt);
+            accumulator = 0.0;
+            break; // Break from the 'switch'
         }
         }
+
+        // --- THIS IS THE "GREY TAB" FIX ---
+        // Render() is now called *after* the switch,
+        // so it runs in *both* PLAYING and PAUSED states.
+        Render();
     }
 }
 
 void Game::ProcessInput(float dt)
 {
     glfwPollEvents();
-    if (glfwGetKey(m_Window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(m_Window, true);
-    }
+    
 
     if (m_IsGodMode)
     {
@@ -422,7 +513,6 @@ void Game::ProcessInput(float dt)
             m_FlyCamera.ProcessKeyboard(FlyCam_Movement::LEFT, dt);
         if (glfwGetKey(m_Window, GLFW_KEY_D) == GLFW_PRESS)
             m_FlyCamera.ProcessKeyboard(FlyCam_Movement::RIGHT, dt);
-        // --- YOUR CONTROLS ---
         if (glfwGetKey(m_Window, GLFW_KEY_SPACE) == GLFW_PRESS)
             m_FlyCamera.ProcessKeyboard(FlyCam_Movement::UP, dt);
         if (glfwGetKey(m_Window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)

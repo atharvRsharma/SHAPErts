@@ -23,7 +23,8 @@ class ProjectileSystem;
 class CollisionSystem;
 
 enum class AppState {
-    PLAYING
+    PLAYING,
+    PAUSED
 };
 
 class Game {
@@ -39,7 +40,13 @@ public:
     OrbitCamera m_OrbitCamera;
     FlyCamera m_FlyCamera;
     bool m_IsGodMode = false;
-    GLFWwindow* m_Window;
+
+    GLFWwindow* m_Window = nullptr;
+    void SetWindowMode(bool borderless);
+    bool m_IsBorderless = true;
+    int m_WindowedWidth, m_WindowedHeight;
+    GLFWmonitor* m_PrimaryMonitor;
+    const GLFWvidmode* m_PrimaryMode;
 
     bool m_BasePlaced = false;
     
@@ -50,6 +57,10 @@ public:
 
     void SpawnEnemyAt(glm::vec3 position);
 
+    AppState getCurrentState() {
+        return m_CurrentState;
+    }
+
 private:
     void Init();
     void ProcessInput(float dt);
@@ -57,6 +68,7 @@ private:
     void Render();
     void Cleanup();
     void ToggleGodMode();
+    
 
     int m_Width, m_Height;
     std::string m_Title;
@@ -96,7 +108,14 @@ private:
     GLFW_KEY_LEFT,
     GLFW_KEY_RIGHT
     };
-    std::vector<int> m_KeyCodeBuffer;
+
+    const std::vector<int> m_ToggleFullscreenCode = {
+        GLFW_KEY_LEFT_ALT,
+        GLFW_KEY_ENTER
+    };
+
+    std::vector<int> m_CheatCodeBuffer;
+    std::vector<int> m_ToggleFullscreenBuffer;
 
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);

@@ -20,7 +20,6 @@ public:
         glUseProgram(ID);
     }
 
-    // --- THIS IS THE FIX ---
     // This function now correctly reads from file paths
     void Compile(const char* vertexPath, const char* fragmentPath) {
 
@@ -83,7 +82,6 @@ public:
         glDeleteShader(vertex);
         glDeleteShader(fragment);
     }
-    // --- END OF FIX ---
 
     // Utility uniform functions
     void SetBool(const std::string& name, bool value) const {

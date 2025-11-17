@@ -55,7 +55,6 @@ namespace Pathfinder {
             allNodes[currentNode.pos] = currentNode;
 
             if (currentNode.pos == end) {
-                // --- Path Found! Reconstruct it ---
                 glm::ivec2 current = end;
                 while (current != start) {
                     path.push_back(gridSystem->GridToWorld(current.x, current.y));

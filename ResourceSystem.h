@@ -3,24 +3,21 @@
 
 #include "ECS.h"
 #include "Components.h"
-#include "BalanceSystem.h" // <-- NEW
+#include "BalanceSystem.h" 
 #include <iostream>
 
 class ResourceSystem : public ecs::System {
 public:
-    // --- UPDATED: Needs BalanceSystem ---
     void Init(BalanceSystem* balanceSystem, double startingResources = 1000.0) {
         m_BalanceSystem = balanceSystem;
         m_CurrentResources = startingResources;
     }
 
     void Update(float dt) {
-        // Get the buff/debuff modifier
         float modifier = m_BalanceSystem->GetResourceModifier();
 
         for (auto const& entity : m_Entities) {
             auto& generator = m_Registry->GetComponent<ResourceGeneratorComponent>(entity);
-            // Apply the modifier to income
             m_CurrentResources += generator.resourcesPerSecond * modifier * dt;
         }
     }
@@ -44,5 +41,5 @@ public:
 
 private:
     double m_CurrentResources = 0.0;
-    BalanceSystem* m_BalanceSystem; // <-- NEW
+    BalanceSystem* m_BalanceSystem; 
 };

@@ -3,9 +3,8 @@
 #include "ResourceSystem.h"
 #include "Game.h" 
 #include <iostream>
-#include <algorithm> // For std::swap
-
-// --- Definitions for the functions in InputSystem.h ---
+#include <algorithm> 
+#include "Constants.h"
 
 void InputSystem::SetWindowSize(int width, int height) {
     m_Width = width;
@@ -21,9 +20,8 @@ void InputSystem::UpdateMatrices(const glm::mat4& projection, const glm::mat4& v
 }
 
 void InputSystem::Update() {
-    // If any UI window is hovered, we don't check for clicks or update highlighter
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
-        m_MousePressedLastFrame = false; // Prevent click carry-over
+        m_MousePressedLastFrame = false; 
         return;
     }
 
@@ -55,7 +53,7 @@ void InputSystem::EnterBuildMode(BuildingType buildType, MeshType meshType, doub
     if (highlighter) {
         m_Registry->GetComponent<MeshComponent>(*highlighter).type = m_BuildMeshType;
     }
-    std::cout << "Entering build mode." << std::endl;
+    std::cout << "in build mode" << std::endl;
 }
 
 void InputSystem::ExitBuildMode() {
@@ -71,18 +69,18 @@ void InputSystem::ExitBuildMode() {
         auto& transform = m_Registry->GetComponent<TransformComponent>(*highlighter);
         auto& mesh = m_Registry->GetComponent<MeshComponent>(*highlighter);
 
-        render.color.a = 0.0f; // Invisible
+        render.color.a = 0.0f; 
         transform.scale = { 1,1,1 };
         transform.rotation = { 0,0,0 };
-        mesh.type = MeshType::None; // <-- Hide the mesh
+        mesh.type = MeshType::None; 
     }
-    std::cout << "Exiting build mode." << std::endl;
+    std::cout << "out of build mode" << std::endl;
 }
 
 
 void InputSystem::RotateBuildFootprint(int direction) {
     if (direction == 0) return;
-    int delta = (direction > 0) ? 1 : -1; // +1 for scroll up, -1 for scroll down
+    int delta = (direction > 0) ? 1 : -1; 
 
     m_BuildRotation = (m_BuildRotation + delta + 4) % 4;
 
@@ -93,7 +91,7 @@ void InputSystem::RotateBuildFootprint(int direction) {
         m_BuildFootprint = { m_BaseFootprint.y, m_BaseFootprint.x };
     }
 }
-// --- END OF FIX ---
+
 std::optional<ecs::Entity> InputSystem::GetHighlighter() {
     for (auto const& entity : m_Entities) {
         return entity;
@@ -161,13 +159,9 @@ void InputSystem::UpdateHighlighter() {
             if (!m_LastPlacementValid) break;
         }
 
-        // --- THIS IS THE ROTATION FIX ---
-        // Scale is based on the *footprint*
         transform.scale = glm::vec3(m_BuildFootprint.x, 1.0f, m_BuildFootprint.y);
-        // Rotation is based on the *logical rotation value*
         float angleDegrees = static_cast<float>(m_BuildRotation) * 90.0f;
         transform.rotation = { 0.0f, angleDegrees, 0.0f };
-        // --- END OF FIX ---
 
         glm::vec3 worldPos = gridSystem->GridToWorld(anchorGridPos.x, anchorGridPos.y);
 
@@ -183,8 +177,8 @@ void InputSystem::UpdateHighlighter() {
         };
 
         render.color = m_LastPlacementValid ?
-            glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) : // Green
-            glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Red
+            glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) : 
+            glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); 
     }
     else {
         render.color.a = 0.0f;
@@ -225,29 +219,29 @@ void InputSystem::HandleMouseClick() {
 
                 glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
                 if (m_BuildBuildingType == BuildingType::ResourceNode) {
-                    color = { 0.2f, 0.8f, 0.2f, 1.0f }; // Green
+                    color = { 0.2f, 0.8f, 0.2f, 1.0f }; 
                 }
                 m_Registry->AddComponent(building, RenderComponent{ color });
                 m_Registry->AddComponent(building, MeshComponent{ m_BuildMeshType });
                 m_Registry->AddComponent(building, BuildingComponent{ m_BuildBuildingType });
                 m_Registry->AddComponent(building, CollisionComponent{ 0.5f });
-                
+
 
                 if (m_BuildBuildingType == BuildingType::Base) {
                     m_Game->OnBasePlaced(buildPos);
-                    m_Registry->AddComponent(building, HealthComponent{ 500, 500 });
+                    m_Registry->AddComponent(building, HealthComponent{ baseHealth, baseHealth });
                 }
                 else if (m_BuildBuildingType == BuildingType::ResourceNode) {
                     m_Registry->AddComponent(building, ResourceGeneratorComponent{});
-                    m_Registry->AddComponent(building, HealthComponent{ 50, 50 });
+                    m_Registry->AddComponent(building, HealthComponent{ resourceNodeHealth, resourceNodeHealth });
                 }
                 else if (m_BuildBuildingType == BuildingType::Turret) {
                     m_Registry->AddComponent(building, TurretAIComponent{});
-                    m_Registry->AddComponent(building, HealthComponent{ 100, 100 });
+                    m_Registry->AddComponent(building, HealthComponent{ turretHealth, turretHealth });
                 }
                 else if (m_BuildBuildingType == BuildingType::Bomb) {
                     m_Registry->AddComponent(building, BombComponent{});
-                    m_Registry->AddComponent(building, HealthComponent{ 1, 1 }); // 1 HP
+                    m_Registry->AddComponent(building, HealthComponent{ bombHealth, bombHealth }); 
                 }
 
 
@@ -260,7 +254,7 @@ void InputSystem::HandleMouseClick() {
                 ExitBuildMode();
             }
             else {
-                std::cout << "Not enough resources!" << std::endl;
+                std::cout << "out of resources" << std::endl;
             }
         }
     }
@@ -304,7 +298,5 @@ void InputSystem::HandleMouseClick() {
         }
     }
 
-    else if (m_CurrentMode == InputMode::REMOVE) {
-
-    }
+   
 }

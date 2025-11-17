@@ -13,22 +13,20 @@ public:
             auto& movement = m_Registry->GetComponent<MovementComponent>(entity);
 
             if (movement.isAttacking) {
-                continue; // Stop moving if we're attacking
+                continue; //if attacking->stop moving
             }
 
             if (movement.path.empty() || movement.currentPathIndex >= movement.path.size()) {
-                continue; // No path
+                continue; //no path
             }
 
-            // --- THIS IS THE "STOP 1-2 BLOCKS AWAY" FIX ---
-            // Check if we have a valid target and are on the *last step* of the path
             if (movement.targetEntity != ecs::MAX_ENTITIES &&
                 m_Registry->HasComponent<TransformComponent>(movement.targetEntity) &&
                 movement.currentPathIndex == movement.path.size() - 1) 
             {
                 auto& targetTransform = m_Registry->GetComponent<TransformComponent>(movement.targetEntity);
                 
-                // Use a 2D distance check
+                
                 glm::vec2 pos2D = {transform.position.x, transform.position.z};
                 glm::vec2 target2D = {targetTransform.position.x, targetTransform.position.z};
                 float stopDistance = 1.5f; 
@@ -40,20 +38,18 @@ public:
                     continue;
                 }
             }
-            // --- END OF FIX ---
 
 
-            // --- (Path following logic) ---
             glm::vec3 targetWaypoint = movement.path[movement.currentPathIndex];
             glm::vec2 pos2D = {transform.position.x, transform.position.z};
             glm::vec2 target2D = {targetWaypoint.x, targetWaypoint.z};
             float distance = glm::distance(pos2D, target2D);
             
-            targetWaypoint.y = transform.position.y; // Keep current Y
+            targetWaypoint.y = transform.position.y;
             glm::vec3 direction = glm::normalize(targetWaypoint - transform.position);
 
             if (distance < 0.1f) {
-                movement.currentPathIndex++; // Move to next waypoint
+                movement.currentPathIndex++; 
             } else {
                 transform.position += direction * movement.speed * dt;
             }

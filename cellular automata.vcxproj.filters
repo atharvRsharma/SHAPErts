@@ -152,12 +152,21 @@
     <ClInclude Include="CollisionSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="simple.vert">
+    <None Include="actor.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="simple.frag">
+    <None Include="actor.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="highlighter.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="highlighter.vert">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

@@ -29,6 +29,7 @@ struct UIState {
     std::string selectedTileInfo = "None";
     float balance = 0.5f;
     double fps = 0.0;
+    bool showSettingsMenu = false;
 };
 
 class UISystem : public ecs::System {
@@ -39,24 +40,27 @@ public:
 
     void Update(float dt) {
         
-        
+        Game* game = static_cast<Game*>(glfwGetWindowUserPointer(m_Registry->GetSystem<InputSystem>()->m_Window));
+        if (game && game->getCurrentState() == AppState::PLAYING) {
+            auto inputSystem = m_Registry->GetSystem<InputSystem>();
+            auto resourceSystem = m_Registry->GetSystem<ResourceSystem>();
+            m_State.resources = resourceSystem->GetResources();
 
-        
-        auto inputSystem = m_Registry->GetSystem<InputSystem>();
-        glm::ivec2 coords = inputSystem->GetSelectedGridCoords();
-        if (coords.x != -1) {
-            m_State.selectedTileInfo = "Tile (" + std::to_string(coords.x) + ", " + std::to_string(coords.y) + ")";
+            auto balanceSystem = m_Registry->GetSystem<BalanceSystem>();
+            m_State.balance = balanceSystem->GetBalance();
+            glm::ivec2 coords = inputSystem->GetSelectedGridCoords();
+            if (coords.x != -1) {
+                m_State.selectedTileInfo = "Tile (" + std::to_string(coords.x) + ", " + std::to_string(coords.y) + ")";
+            }
+            else {
+                m_State.selectedTileInfo = "None";
+            }
         }
-        else {
-            m_State.selectedTileInfo = "None";
-        }
 
         
-        auto resourceSystem = m_Registry->GetSystem<ResourceSystem>();
-        m_State.resources = resourceSystem->GetResources();
+        
 
-        auto balanceSystem = m_Registry->GetSystem<BalanceSystem>();
-        m_State.balance = balanceSystem->GetBalance();
+        
     }
 
     void Render(ecs::Registry* registry) {
@@ -73,6 +77,11 @@ public:
         DrawMainHUD(registry);
         DrawDebugWindow(registry);
         DrawBuildMenu(registry);
+
+        Game* game = static_cast<Game*>(glfwGetWindowUserPointer(m_Registry->GetSystem<InputSystem>()->m_Window));
+        if (game && game->getCurrentState() == AppState::PAUSED) {
+            DrawPauseMenu(registry, game);
+        }
         
     }
 
@@ -230,6 +239,60 @@ private:
         }
 
         ImGui::End();
+    }
+
+
+    void DrawPauseMenu(ecs::Registry* registry, Game* game) {
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(250, 200), ImGuiCond_Always);
+
+        if (ImGui::Begin("Game Paused", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse)) {
+
+            if (ImGui::Button("Resume", ImVec2(-1, 40))) {
+                game->SetAppState(AppState::PLAYING);
+            }
+
+            if (ImGui::Button("Settings", ImVec2(-1, 40))) {
+                m_State.showSettingsMenu = true;
+            }
+
+            // --- QUIT ---
+            if (ImGui::Button("Save & Quit", ImVec2(-1, 40))) {
+                // We'll add save logic later
+                glfwSetWindowShouldClose(game->m_Window, true);
+            }
+
+        }
+
+            ImGui::End();
+        // Draw the settings menu *if* it's open
+        if (m_State.showSettingsMenu) {
+            DrawSettingsMenu(registry, game);
+        }
+    }
+
+    void DrawSettingsMenu(ecs::Registry* registry, Game* game) {
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_Once);
+
+        if (ImGui::Begin("Settings", &m_State.showSettingsMenu)) {
+            ImGui::Text("Window Mode");
+
+            // Radio buttons for window mode
+            if (ImGui::RadioButton("Borderless Fullscreen", game->m_IsBorderless)) {
+                game->SetWindowMode(true);
+            }
+            ImGui::SameLine();
+            if (ImGui::RadioButton("Windowed", !game->m_IsBorderless)) {
+                game->SetWindowMode(false);
+            }
+
+            ImGui::Separator();
+            // (We can add audio sliders, etc. here later)
+
+            ImGui::End();
+        }
     }
 
 };

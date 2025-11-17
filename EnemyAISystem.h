@@ -36,7 +36,6 @@ public:
             auto& transform = m_Registry->GetComponent<TransformComponent>(entity);
             auto& movement = m_Registry->GetComponent<MovementComponent>(entity);
 
-            // 1. Check if our current target is dead
             if (movement.targetEntity != ecs::MAX_ENTITIES && !registry->HasComponent<HealthComponent>(movement.targetEntity)) {
                 movement.targetEntity = ecs::MAX_ENTITIES;
                 movement.isAttacking = false;
@@ -45,11 +44,10 @@ public:
 
             bool isIdle = movement.path.empty() || movement.currentPathIndex >= movement.path.size();
 
-            // --- THIS IS THE "CLOSEST" TARGET FIX ---
-            // 2. If we are idle (no target, not attacking), find a new, *closest* target
+            //if idle try to find new closest target
             if (movement.targetEntity == ecs::MAX_ENTITIES && isIdle && doRepath)
             {
-                // "Pillaging" AI: Find Closest Target
+                //pillaging logic
                 ecs::Entity closestTarget = targets[0];
                 float minDistance = FLT_MAX;
 
@@ -61,8 +59,7 @@ public:
                         closestTarget = targetEntity;
                     }
                 }
-                movement.targetEntity = closestTarget; // <-- LOCK ON
-                // --- END OF FIX ---
+                movement.targetEntity = closestTarget; 
 
                 glm::ivec2 startTile = m_GridSystem->WorldToGrid(transform.position);
                 glm::ivec2 endTile = m_GridSystem->WorldToGrid(registry->GetComponent<TransformComponent>(closestTarget).position);

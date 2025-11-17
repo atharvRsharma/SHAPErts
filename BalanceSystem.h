@@ -6,7 +6,6 @@
 
 class BalanceSystem : public ecs::System {
 public:
-    // Balance is 0.0 (max shadow) to 1.0 (max light)
     float m_Balance = 0.5f;
 
     void Init() {
@@ -29,9 +28,6 @@ public:
         return m_Balance;
     }
 
-    // at 0.0 (max shadow) -> returns 0.5x
-    // at 0.5 (neutral)    -> returns 1.0x
-    // at 1.0 (max light)  -> returns 1.5x
     float GetResourceModifier() const {
         return 0.5f + m_Balance;
     }
