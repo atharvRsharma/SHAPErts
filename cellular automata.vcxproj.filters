@@ -163,11 +163,11 @@
     <None Include="actor.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="highlighter.frag">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="highlighter.vert">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="highlighter.frag">
+      <Filter>Source Files\imgui</Filter>
     </None>
   </ItemGroup>
 </Project>

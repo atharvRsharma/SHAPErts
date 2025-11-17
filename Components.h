@@ -38,6 +38,7 @@ struct MeshComponent {
     MeshType type = MeshType::None;
 };
 
+
 struct BuildingComponent {
     BuildingType type = BuildingType::None;
 };

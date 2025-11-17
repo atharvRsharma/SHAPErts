@@ -122,7 +122,8 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
     if (!game || action != GLFW_PRESS) return;
 
-    if (key == GLFW_KEY_ESCAPE) {
+    // --- Pause Logic ---
+    if (key == GLFW_KEY_ESCAPE) { // Changed to ESCAPE
         if (game->m_CurrentState == AppState::PLAYING) {
             game->SetAppState(AppState::PAUSED);
             glfwSetInputMode(game->m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -130,34 +131,34 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
         }
         else if (game->m_CurrentState == AppState::PAUSED) {
             game->SetAppState(AppState::PLAYING);
-            if (!game->m_IsGodMode) {
-                //uncomment to disable cursor in free cam
-                //glfwSetInputMode(game->m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            if (game->m_IsGodMode) {
+                glfwSetInputMode(game->m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             }
             std::cout << "Game Resumed" << std::endl;
         }
-        return; 
+        return;
     }
 
+    // --- Cheat Code Buffers ---
     game->m_CheatCodeBuffer.push_back(key);
     game->m_ToggleFullscreenBuffer.push_back(key);
 
+    // --- God Mode Check ---
     if (game->m_CheatCodeBuffer.size() > game->m_GodModeCode.size()) {
         game->m_CheatCodeBuffer.erase(game->m_CheatCodeBuffer.begin());
     }
-
     if (game->m_CheatCodeBuffer == game->m_GodModeCode) {
         game->ToggleGodMode();
     }
 
-
-    if (game->m_ToggleFullscreenCode.size() > game->m_ToggleFullscreenCode.size()) {
-        game->m_ToggleFullscreenBuffer.erase(game->m_ToggleFullscreenCode.begin());
+    // --- THIS IS THE FIX (Fullscreen Toggle) ---
+    if (game->m_ToggleFullscreenBuffer.size() > game->m_ToggleFullscreenCode.size()) {
+        game->m_ToggleFullscreenBuffer.erase(game->m_ToggleFullscreenBuffer.begin());
     }
-
     if (game->m_ToggleFullscreenBuffer == game->m_ToggleFullscreenCode) {
         game->SetWindowMode(!game->m_IsBorderless);
     }
+    // --- END OF FIX ---
 }
 
 
@@ -375,14 +376,12 @@ void Game::Init() {
     m_RenderSystem->Init();
     m_UISystem->Init(m_Registry.get());
     m_InputSystem->Init(m_Window, m_Registry.get(), this);
-    m_InputSystem->SetWindowSize(m_Width, m_Height);
     m_GridSystem->Init();
 
     m_BalanceSystem->Init(); 
     m_ResourceSystem->Init(m_BalanceSystem.get(), 1000.0);
     m_EnemyAISystem->Init(m_GridSystem.get());
     m_CombatSystem->Init(m_BalanceSystem.get(), m_ResourceSystem.get(), m_GridSystem.get());
-    m_EnemyAISystem->Init(m_GridSystem.get());
 
     
 
