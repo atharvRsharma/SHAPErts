@@ -174,7 +174,6 @@
     <ClInclude Include="headers\EnemyAISystem.h" />
     <ClInclude Include="headers\FileParser.h" />
     <ClInclude Include="headers\FlyCamera.h" />
-    <ClInclude Include="headers\Frustum.h" />
     <ClInclude Include="headers\Game.h" />
     <ClInclude Include="headers\GridSystem.h" />
     <ClInclude Include="headers\InputSystem.h" />
@@ -186,6 +185,7 @@
     <ClInclude Include="headers\ProjectileSystem.h" />
     <ClInclude Include="headers\RenderSystem.h" />
     <ClInclude Include="headers\ResourceSystem.h" />
+    <ClInclude Include="headers\Serializer.h" />
     <ClInclude Include="headers\Shader.h" />
     <ClInclude Include="headers\UISystem.h" />
     <ClInclude Include="imgui\imconfig.h" />

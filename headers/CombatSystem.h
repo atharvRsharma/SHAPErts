@@ -113,7 +113,7 @@ private:
         float turn = std::clamp(diff, -turret.turnSpeed * dt, turret.turnSpeed * dt);
         turretTransform.rotation.y += turn;
 
-        return diff - turn; // Return the remaining difference
+        return diff - turn; 
     }
 
     bool IsTargetInFOV(const TransformComponent& turretTransform, const TransformComponent& targetTransform, const TurretAIComponent& turret) {
@@ -161,14 +161,14 @@ private:
 
         registry->AddComponent(bullet, TransformComponent{
             turretPos,
-            {0.2f, 0.2f, 0.2f},
+            {0.15f, 0.05f, 0.05f},
             {0,0,0}
             });
         registry->AddComponent(bullet, RenderComponent{ {1.0f, 0.5f, 0.0f, 1.0f} }); // Orange
         registry->AddComponent(bullet, MeshComponent{ MeshType::Sphere });
 
         glm::vec3 velocity = glm::normalize(targetPos - turretPos) * 15.0f; //15 units per sec
-        registry->AddComponent(bullet, ProjectileComponent{ velocity, 4 }); //4 damage
+        registry->AddComponent(bullet, ProjectileComponent{ velocity, 5 }); //4 damage
     }
 
     void UpdateEnemies(float dt, ecs::Registry* registry, const std::set<ecs::Entity>& allEnemies) {
@@ -251,7 +251,7 @@ private:
 
             for (int x = 0; x < footprintX; ++x) {
                 for (int z = 0; z < footprintZ; ++z) {
-                    m_GridSystem->SetTileOccupied(anchor.x + x, anchor.y + z, false);
+                    m_GridSystem->SetEntityAt(anchor.x + x, anchor.y + z, ecs::MAX_ENTITIES);
                 }
             }
 

@@ -248,7 +248,7 @@ void InputSystem::HandleMouseClick() {
 
                 for (int x = 0; x < m_BuildFootprint.x; ++x) {
                     for (int z = 0; z < m_BuildFootprint.y; ++z) {
-                        gridSystem->SetTileOccupied(anchorGridPos.x + x, anchorGridPos.y + z, true);
+                        gridSystem->SetEntityAt(anchorGridPos.x + x, anchorGridPos.y + z, building);
                     }
                 }
                 ExitBuildMode();

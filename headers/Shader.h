@@ -15,12 +15,10 @@ public:
 
     Shader() : ID(0) {}
 
-    // Activates the shader
     void Use() const {
         glUseProgram(ID);
     }
 
-    // This function now correctly reads from file paths
     void Compile(const char* vertexPath, const char* fragmentPath) {
 
         // 1. retrieve the vertex/fragment source code from filePath

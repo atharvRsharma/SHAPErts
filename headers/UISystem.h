@@ -15,11 +15,11 @@
 #include "BalanceSystem.h"
 
 
+
 const double BASE_COST = 100.0;
 const double TURRET_COST = 150.0;
 const double NODE_COST = 50.0;
 const double BOMB_COST = 70.0;
-
 
 
 
@@ -39,7 +39,7 @@ public:
     }
 
     void Update(float dt) {
-        
+
         Game* game = static_cast<Game*>(glfwGetWindowUserPointer(m_Registry->GetSystem<InputSystem>()->m_Window));
         if (game && game->getCurrentState() == AppState::PLAYING) {
             auto inputSystem = m_Registry->GetSystem<InputSystem>();
@@ -57,10 +57,6 @@ public:
             }
         }
 
-        
-        
-
-        
     }
 
     void Render(ecs::Registry* registry) {
@@ -74,15 +70,30 @@ public:
             frames = 0;
             lastTime = currentTime;
         }
-        DrawMainHUD(registry);
+        /*DrawMainHUD(registry);
         DrawDebugWindow(registry);
-        DrawBuildMenu(registry);
+        DrawBuildMenu(registry);*/
 
         Game* game = static_cast<Game*>(glfwGetWindowUserPointer(m_Registry->GetSystem<InputSystem>()->m_Window));
-        if (game && game->getCurrentState() == AppState::PAUSED) {
+        if (game->getCurrentState() == AppState::PLAYING) {
+            DrawMainHUD(registry);
+            DrawDebugWindow(registry);
+            DrawBuildMenu(registry);
+        }
+        else if (game->getCurrentState() == AppState::PAUSED) {
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+            DrawMainHUD(registry);
+            DrawDebugWindow(registry);
+
+            DrawBuildMenu(registry);
+            ImGui::PopStyleVar();
+
             DrawPauseMenu(registry, game);
         }
-        
+        else if (game->getCurrentState() == AppState::MAIN_MENU) {
+            DrawMainMenu(registry, game);
+        }
+
     }
 
 private:
@@ -103,7 +114,7 @@ private:
             ImGui::Text("Selected: %s", m_State.selectedTileInfo.c_str());
             ImGui::Text("Energy Balance");
 
-           
+
             std::string text = std::to_string((int)m_State.balance * 100) + "%";
             ImGui::ProgressBar(m_State.balance, ImVec2(-1.0f, 0.0f), text.c_str());
 
@@ -112,13 +123,14 @@ private:
     }
 
     void DrawDebugWindow(ecs::Registry* registry) {
+
         if (ImGui::Begin("Debug Info")) {
             ImGui::Text("Entities (UI System): %zu", m_Entities.size());
             ImGui::Text("Living Entities (Total): %d", registry->GetLivingEntityCount());
 
             Game* game = static_cast<Game*>(glfwGetWindowUserPointer(m_Registry->GetSystem<InputSystem>()->m_Window));
             if (game) {
-                ImGui::Text("God Mode: %s", game->m_IsGodMode ? "ON" : "OFF");
+                ImGui::Text("Free cam: %s", game->m_IsGodMode ? "ON" : "OFF");
                 glm::vec3 camPos = game->m_IsGodMode ? game->m_FlyCamera.Position : game->m_OrbitCamera.GetPosition();
                 ImGui::Text("Camera Pos: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z);
 
@@ -135,9 +147,10 @@ private:
                 ImGui::Text("InputSystem: %zu entities", m_Registry->GetSystem<InputSystem>()->m_Entities.size());
 
             }
-            
+
         }
         ImGui::End();
+
     }
 
 
@@ -157,7 +170,7 @@ private:
 
         if (inputSystem->IsInBuildMode() &&
             ImGui::GetIO().MouseClicked[0] &&
-            !ImGui::IsWindowHovered()) 
+            !ImGui::IsWindowHovered())
         {
             inputSystem->ExitBuildMode();
         }
@@ -245,28 +258,32 @@ private:
     void DrawPauseMenu(ecs::Registry* registry, Game* game) {
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-        ImGui::SetNextWindowSize(ImVec2(250, 200), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(250, 250), ImGuiCond_Always);
 
         if (ImGui::Begin("Game Paused", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse)) {
 
             if (ImGui::Button("Resume", ImVec2(-1, 40))) {
                 game->SetAppState(AppState::PLAYING);
             }
-
             if (ImGui::Button("Settings", ImVec2(-1, 40))) {
                 m_State.showSettingsMenu = true;
             }
+            if (ImGui::Button("Go to main menu", ImVec2(-1, 40))) {
+                DrawMainMenu(registry, game);
+                game->SetAppState(AppState::MAIN_MENU);
+            }
 
-            // --- QUIT ---
-            if (ImGui::Button("Save & Quit", ImVec2(-1, 40))) {
-                // We'll add save logic later
+            if (ImGui::Button("Save", ImVec2(-1, 40))) {
+                game->SaveGame();
+            }
+
+            if (ImGui::Button("Quit", ImVec2(-1, 40))) {
                 glfwSetWindowShouldClose(game->m_Window, true);
             }
 
+            ImGui::End();
         }
 
-            ImGui::End();
-        // Draw the settings menu *if* it's open
         if (m_State.showSettingsMenu) {
             DrawSettingsMenu(registry, game);
         }
@@ -279,7 +296,6 @@ private:
         if (ImGui::Begin("Settings", &m_State.showSettingsMenu)) {
             ImGui::Text("Window Mode");
 
-            // Radio buttons for window mode
             if (ImGui::RadioButton("Borderless Fullscreen", game->m_IsBorderless)) {
                 game->SetWindowMode(true);
             }
@@ -289,10 +305,54 @@ private:
             }
 
             ImGui::Separator();
-            // (We can add audio sliders, etc. here later)
+            //can add more setting(audio graphics and whatnot)
 
             ImGui::End();
         }
+    }
+
+    void DrawMainMenu(ecs::Registry* registry, Game* game) {
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+
+        if (ImGui::Begin("Main Menu", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse))
+        {
+            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+
+            ImGui::SetCursorPosX(center.x - 100);
+            ImGui::SetCursorPosY(center.y - 120);
+            ImGui::Text("R T S   G A M E");
+
+            ImGui::SetCursorPosX(center.x - 100);
+            if (ImGui::Button("New Game", ImVec2(200, 40))) {
+                game->ClearWorld();
+                game->SetAppState(AppState::PLAYING);
+            }
+
+            ImGui::SetCursorPosX(center.x - 100);
+            if (ImGui::Button("Load Game", ImVec2(200, 40))) {
+                game->LoadGame();
+            }
+
+            ImGui::SetCursorPosX(center.x - 100);
+            if (ImGui::Button("Settings", ImVec2(200, 40))) {
+                m_State.showSettingsMenu = true;
+            }
+
+            ImGui::SetCursorPosX(center.x - 100);
+            if (ImGui::Button("Quit", ImVec2(200, 40))) {
+                glfwSetWindowShouldClose(game->m_Window, true);
+            }
+
+            ImGui::End();
+        }
+        ImGui::PopStyleVar();
+
+        if (m_State.showSettingsMenu) {
+            DrawSettingsMenu(registry, game);
+        }
+
     }
 
 };

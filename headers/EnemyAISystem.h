@@ -13,16 +13,15 @@ class EnemyAISystem : public ecs::System {
 public:
     void Init(GridSystem* gridSystem) {
         m_GridSystem = gridSystem;
-        m_RandomEngine.seed(std::random_device()());
     }
 
     void Update(float dt, ecs::Registry* registry, const std::set<ecs::Entity>& allRenderableEntities) {
 
         m_AiRepathTimer -= dt;
-        bool doRepath = (m_AiRepathTimer <= 0.0f);
-        if (doRepath) {
-            m_AiRepathTimer = 1.0f;
+        if (m_AiRepathTimer > 0.0f) {
+            return; 
         }
+        m_AiRepathTimer = 1.0f; 
 
         std::vector<ecs::Entity> targets;
         for (auto const& entity : allRenderableEntities) {
@@ -36,18 +35,8 @@ public:
             auto& transform = m_Registry->GetComponent<TransformComponent>(entity);
             auto& movement = m_Registry->GetComponent<MovementComponent>(entity);
 
-            if (movement.targetEntity != ecs::MAX_ENTITIES && !registry->HasComponent<HealthComponent>(movement.targetEntity)) {
-                movement.targetEntity = ecs::MAX_ENTITIES;
-                movement.isAttacking = false;
-                movement.path.clear();
-            }
-
-            bool isIdle = movement.path.empty() || movement.currentPathIndex >= movement.path.size();
-
-            //if idle try to find new closest target
-            if (movement.targetEntity == ecs::MAX_ENTITIES && isIdle && doRepath)
+            if (!movement.isAttacking && movement.targetEntity == ecs::MAX_ENTITIES)
             {
-                //pillaging logic
                 ecs::Entity closestTarget = targets[0];
                 float minDistance = FLT_MAX;
 
@@ -59,20 +48,9 @@ public:
                         closestTarget = targetEntity;
                     }
                 }
-                movement.targetEntity = closestTarget; 
 
-                glm::ivec2 startTile = m_GridSystem->WorldToGrid(transform.position);
-                glm::ivec2 endTile = m_GridSystem->WorldToGrid(registry->GetComponent<TransformComponent>(closestTarget).position);
-
-                movement.path = Pathfinder::FindPath(m_GridSystem, startTile, endTile);
-                movement.currentPathIndex = 0;
-
-                if (movement.path.empty()) {
-                    std::cout << "Enemy " << entity << " COULD NOT FIND PATH" << std::endl;
-                }
-                else {
-                    std::cout << "Enemy " << entity << " acquired new target " << closestTarget << "!" << std::endl;
-                }
+                movement.targetEntity = closestTarget;
+                std::cout << "AI: Enemy " << entity << " acquired new target " << closestTarget << "!" << std::endl;
             }
         }
     }

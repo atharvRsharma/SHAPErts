@@ -23,6 +23,7 @@ class ProjectileSystem;
 class CollisionSystem;
 
 enum class AppState {
+    MAIN_MENU,
     PLAYING,
     PAUSED
 };
@@ -40,6 +41,7 @@ public:
     OrbitCamera m_OrbitCamera;
     FlyCamera m_FlyCamera;
     bool m_IsGodMode = false;
+
 
     GLFWwindow* m_Window = nullptr;
     void SetWindowMode(bool borderless);
@@ -60,6 +62,11 @@ public:
     AppState getCurrentState() {
         return m_CurrentState;
     }
+
+    
+    void SaveGame();
+    void LoadGame();
+    void ClearWorld();
 
 private:
     void Init();
@@ -113,6 +120,7 @@ private:
         GLFW_KEY_LEFT_ALT,
         GLFW_KEY_ENTER
     };
+
 
     std::vector<int> m_CheatCodeBuffer;
     std::vector<int> m_ToggleFullscreenBuffer;

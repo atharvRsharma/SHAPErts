@@ -12,12 +12,16 @@
 #include "BalanceSystem.h"
 #include "ProjectileSystem.h"
 #include "CollisionSystem.h"
+#include "Serializer.h"
 
 #include <stb/stb_image.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
+//#include <glm/glm.hpp>
+//#include <glm/gtc/matrix_transform.hpp>
+//#include <iostream>
+//#include <fstream>     
+//#include <nlohmann/json.hpp>
+//using json = nlohmann::json;
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -50,7 +54,7 @@ void Game::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
     if (game->m_IsGodMode) return;
 
-    if (game->m_CurrentState == AppState::PAUSED) return;
+    if (game->m_CurrentState != AppState::PLAYING) return;
 
     if (game->m_InputSystem->IsInBuildMode()) {
         game->m_InputSystem->RotateBuildFootprint(yoffset > 0 ? 1 : -1);
@@ -87,13 +91,17 @@ void Game::mouse_button_callback(GLFWwindow* window, int button, int action, int
         }
     }
 
-    if (game->m_CurrentState == AppState::PAUSED) return;
+    if (game->m_IsGodMode || game->m_CurrentState != AppState::PLAYING) return;
 }
 
 void Game::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
 {
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
     if (!game) return;
+
+    if (game->m_CurrentState == AppState::PAUSED && !game->m_IsGodMode) {
+        return;
+    }
 
     float xoffset = static_cast<float>(xpos - game->m_LastMouseX);
     float yoffset = static_cast<float>(game->m_LastMouseY - ypos);
@@ -124,21 +132,17 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
     Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
     if (!game || action != GLFW_PRESS) return;
 
-    if (key == GLFW_KEY_ESCAPE) { 
+    if (key == GLFW_KEY_ESCAPE) {
         if (game->m_CurrentState == AppState::PLAYING) {
             game->SetAppState(AppState::PAUSED);
-            glfwSetInputMode(game->m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            std::cout << "Game Paused" << std::endl;
         }
         else if (game->m_CurrentState == AppState::PAUSED) {
             game->SetAppState(AppState::PLAYING);
-            if (game->m_IsGodMode) {
-                glfwSetInputMode(game->m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            }
-            std::cout << "Game Resumed" << std::endl;
         }
         return;
     }
+
+    if (game->m_CurrentState != AppState::PLAYING) return;
 
     game->m_CheatCodeBuffer.push_back(key);
     game->m_ToggleFullscreenBuffer.push_back(key);
@@ -156,6 +160,7 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
     if (game->m_ToggleFullscreenBuffer == game->m_ToggleFullscreenCode) {
         game->SetWindowMode(!game->m_IsBorderless);
     }
+
 }
 
 
@@ -164,7 +169,7 @@ Game::Game(int width, int height, const std::string& title)
     : m_Window(nullptr), m_Width(width), m_Height(height), m_Title(title),
     m_OrbitCamera(glm::vec3(0.0f)),
     m_FlyCamera(glm::vec3(0.0f, 15.0f, 15.0f)),
-    m_CurrentState(AppState::PLAYING),
+    m_CurrentState(AppState::MAIN_MENU),
     m_WindowedWidth(width), m_WindowedHeight(height)
 {
     Init();
@@ -172,12 +177,17 @@ Game::Game(int width, int height, const std::string& title)
 
 Game::~Game() { Cleanup(); }
 
-//TODO fix the setappstate, as it prints even wout placing base, only going from paused to unpaused
 
 void Game::SetAppState(AppState newState) {
     m_CurrentState = newState;
+
     if (m_CurrentState == AppState::PLAYING) {
-        std::cout << "Base placed! Game is now PLAYING." << std::endl;
+        if (!m_IsGodMode) {
+            glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); 
+        }
+    }
+    else {
+        glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 }
 
@@ -379,6 +389,7 @@ void Game::Init() {
     m_ResourceSystem->Init(m_BalanceSystem.get(), 1000.0);
     m_EnemyAISystem->Init(m_GridSystem.get());
     m_CombatSystem->Init(m_BalanceSystem.get(), m_ResourceSystem.get(), m_GridSystem.get());
+    m_MovementSystem->Init(m_GridSystem.get());
 
     
 
@@ -457,12 +468,17 @@ void Game::Run() {
         int w, h;
         glfwGetFramebufferSize(m_Window, &w, &h);
         if (w == 0 || h == 0) {
-            continue; //if minimised, skip rest of loop
+            continue;
         }
 
         switch (m_CurrentState) {
+
+        case AppState::MAIN_MENU:
+            m_UISystem->Update((float)dt);
+            accumulator = 0.0; 
+            break;
+
         case AppState::PLAYING:
-        {
             while (accumulator >= dt) {
                 m_ResourceSystem->Update((float)dt);
                 m_UISystem->Update((float)dt);
@@ -476,25 +492,25 @@ void Game::Run() {
                     m_CombatSystem->Update((float)dt, m_Registry.get(), enemyEntities, renderableEntities);
                     m_ProjectileSystem->Update((float)dt, m_Registry.get(), enemyEntities);
                 }
-                m_MovementSystem->Update((float)dt);
+                m_MovementSystem->Update((float)dt, m_Registry.get());
                 m_CollisionSystem->Update((float)dt, m_GridSystem.get());
 
                 accumulator -= dt;
                 t += dt;
             }
-            break; 
-        }
+            break;
+
         case AppState::PAUSED:
-        {
             m_UISystem->Update((float)dt);
             accumulator = 0.0;
             break;
-        }
         }
 
         Render();
     }
 }
+
+
 
 void Game::ProcessInput(float dt)
 {
@@ -559,4 +575,161 @@ void Game::Cleanup() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_Window);
     glfwTerminate();
+}
+
+
+
+
+void Game::ClearWorld()
+{
+    m_Registry->Reset();
+    m_GridSystem->Init();
+    m_BalanceSystem->Init();
+    m_ResourceSystem->Init(m_BalanceSystem.get(), 1000);
+    m_EnemyAISystem->Init(m_GridSystem.get());
+    m_CombatSystem->Init(m_BalanceSystem.get(), m_ResourceSystem.get(), m_GridSystem.get());
+
+    m_BasePlaced = false;
+    m_BasePosition = { 0,0,0 };
+
+    auto grid = m_Registry->CreateEntity();
+    m_Registry->AddComponent(grid, TransformComponent{ {0,0,0}, {20,1,20} });
+    m_Registry->AddComponent(grid, RenderComponent{ {0.2f, 0.2f, 0.2f, 1.0f} });
+    m_Registry->AddComponent(grid, MeshComponent{ MeshType::Quad });
+
+    auto highlighter = m_Registry->CreateEntity();
+    m_Registry->AddComponent(highlighter, TransformComponent{ {0.5f, 0.01f, 0.5f} });
+    m_Registry->AddComponent(highlighter, RenderComponent{ {0,0,0,0} });
+    m_Registry->AddComponent(highlighter, MeshComponent{ MeshType::None });
+    m_Registry->AddComponent(highlighter, GhostComponent{});
+}
+
+
+void Game::SaveGame()
+{
+    std::cout << "Saving game..." << std::endl;
+    json saveFile;
+
+    saveFile["globals"]["base_placed"] = m_BasePlaced;
+    saveFile["globals"]["base_pos"] = m_BasePosition;
+    saveFile["globals"]["resources"] = m_ResourceSystem->GetResources();
+    saveFile["globals"]["balance"] = m_BalanceSystem->GetBalance();
+    saveFile["globals"]["cam_target"] = m_OrbitCamera.GetTarget();
+    saveFile["globals"]["cam_dist"] = m_OrbitCamera.GetDistance();
+
+    saveFile["entities"] = json::array();
+    for (const auto& entity : m_Registry->GetLivingEntities())
+    {
+        if (entity == 0 || entity == 1) continue;
+
+        json entityJson;
+        entityJson["id"] = entity;
+
+        if (m_Registry->HasComponent<TransformComponent>(entity))
+            entityJson["transform"] = m_Registry->GetComponent<TransformComponent>(entity);
+        if (m_Registry->HasComponent<RenderComponent>(entity))
+            entityJson["render"] = m_Registry->GetComponent<RenderComponent>(entity);
+        if (m_Registry->HasComponent<MeshComponent>(entity))
+            entityJson["mesh"] = m_Registry->GetComponent<MeshComponent>(entity);
+        if (m_Registry->HasComponent<BuildingComponent>(entity))
+            entityJson["building"] = m_Registry->GetComponent<BuildingComponent>(entity);
+        if (m_Registry->HasComponent<HealthComponent>(entity))
+            entityJson["health"] = m_Registry->GetComponent<HealthComponent>(entity);
+        if (m_Registry->HasComponent<ResourceGeneratorComponent>(entity))
+            entityJson["generator"] = m_Registry->GetComponent<ResourceGeneratorComponent>(entity);
+        if (m_Registry->HasComponent<TurretAIComponent>(entity))
+            entityJson["turret_ai"] = m_Registry->GetComponent<TurretAIComponent>(entity);
+        if (m_Registry->HasComponent<BombComponent>(entity))
+            entityJson["bomb"] = m_Registry->GetComponent<BombComponent>(entity);
+        if (m_Registry->HasComponent<CollisionComponent>(entity))
+            entityJson["collision"] = m_Registry->GetComponent<CollisionComponent>(entity);
+        if (m_Registry->HasComponent<EnemyComponent>(entity))
+            entityJson["enemy"] = true;
+        if (m_Registry->HasComponent<MovementComponent>(entity))
+            entityJson["movement"] = m_Registry->GetComponent<MovementComponent>(entity);
+
+        saveFile["entities"].push_back(entityJson);
+    }
+
+    std::ofstream o("savegame.json");
+    o << saveFile.dump(2);
+    o.close();
+    std::cout << "Game saved!" << std::endl;
+}
+
+void Game::LoadGame()
+{
+    std::cout << "Loading game..." << std::endl;
+    json saveFile;
+    std::ifstream i("savegame.json");
+    if (!i.is_open()) {
+        std::cout << "No save file found." << std::endl;
+        return;
+    }
+
+    try {
+        i >> saveFile;
+    }
+    catch (json::parse_error& e) {
+        std::cout << "Error parsing save file: " << e.what() << std::endl;
+        i.close();
+        return;
+    }
+    i.close();
+
+    ClearWorld();
+
+    m_BasePlaced = saveFile["globals"]["base_placed"].get<bool>();
+    m_BasePosition = saveFile["globals"]["base_pos"].get<glm::vec3>();
+    m_ResourceSystem->AddResources(saveFile["globals"]["resources"].get<double>());
+    m_BalanceSystem->m_Balance = saveFile["globals"]["balance"].get<float>();
+    m_OrbitCamera.SetTarget(saveFile["globals"]["cam_target"].get<glm::vec3>());
+    m_OrbitCamera.SetDistance(saveFile["globals"]["cam_dist"].get<float>());
+
+    for (const auto& entityJson : saveFile["entities"])
+    {
+        ecs::Entity id = entityJson["id"].get<ecs::Entity>();
+        auto entity = m_Registry->CreateEntity(id);
+
+        if (entityJson.contains("transform"))
+            m_Registry->AddComponent(entity, entityJson.at("transform").get<TransformComponent>());
+        if (entityJson.contains("render"))
+            m_Registry->AddComponent(entity, entityJson.at("render").get<RenderComponent>());
+        if (entityJson.contains("mesh"))
+            m_Registry->AddComponent(entity, entityJson.at("mesh").get<MeshComponent>());
+        if (entityJson.contains("building"))
+            m_Registry->AddComponent(entity, entityJson.at("building").get<BuildingComponent>());
+        if (entityJson.contains("health"))
+            m_Registry->AddComponent(entity, entityJson.at("health").get<HealthComponent>());
+        if (entityJson.contains("generator"))
+            m_Registry->AddComponent(entity, entityJson.at("generator").get<ResourceGeneratorComponent>());
+        if (entityJson.contains("turret_ai"))
+            m_Registry->AddComponent(entity, entityJson.at("turret_ai").get<TurretAIComponent>());
+        if (entityJson.contains("bomb"))
+            m_Registry->AddComponent(entity, entityJson.at("bomb").get<BombComponent>());
+        if (entityJson.contains("collision"))
+            m_Registry->AddComponent(entity, entityJson.at("collision").get<CollisionComponent>());
+        if (entityJson.contains("enemy"))
+            m_Registry->AddComponent(entity, EnemyComponent{});
+        if (entityJson.contains("movement"))
+            m_Registry->AddComponent(entity, entityJson.at("movement").get<MovementComponent>());
+
+        if (m_Registry->HasComponent<BuildingComponent>(entity)) {
+            auto& t = m_Registry->GetComponent<TransformComponent>(entity);
+            glm::ivec2 anchor = m_GridSystem->WorldToGrid(t.position - glm::vec3((t.scale.x / 2.f) - 0.5f, 0.f, (t.scale.z / 2.f) - 0.5f));
+            int footprintX = (int)t.scale.x;
+            int footprintZ = (int)t.scale.z;
+            if (std::abs(t.rotation.y - 90.0f) < 1.0f || std::abs(t.rotation.y - 270.0f) < 1.0f) {
+                std::swap(footprintX, footprintZ);
+            }
+            for (int x = 0; x < footprintX; ++x) {
+                for (int z = 0; z < footprintZ; ++z) {
+                    m_GridSystem->SetEntityAt(anchor.x + x, anchor.y + z, entity);
+                }
+            }
+        }
+    }
+
+    std::cout << "Game loaded!" << std::endl;
+    SetAppState(AppState::PLAYING);
 }
