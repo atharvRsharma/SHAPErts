@@ -4,7 +4,7 @@
 
 int main() {
     try {
-        Game game(1920, 1080, "RTS");
+        Game game(1920, 1080, "mr frog");
         game.Run();
     }
     catch (const std::exception& e) {

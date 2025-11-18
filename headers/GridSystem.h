@@ -15,7 +15,7 @@ public:
 
     bool IsTileOccupied(int x, int y) const {
         if (!IsValidTile(x, y)) {
-            return true; 
+            return true;
         }
         return m_Grid[x][y] != ecs::MAX_ENTITIES;
     }

@@ -17,7 +17,7 @@ class ResourceSystem;
 class GridSystem;
 class MovementSystem;
 class EnemyAISystem;
-class CombatSystem; 
+class CombatSystem;
 class BalanceSystem;
 class ProjectileSystem;
 class CollisionSystem;
@@ -37,7 +37,7 @@ public:
     Game& operator=(const Game&) = delete;
 
     void Run();
-    
+
     OrbitCamera m_OrbitCamera;
     FlyCamera m_FlyCamera;
     bool m_IsGodMode = false;
@@ -51,7 +51,7 @@ public:
     const GLFWvidmode* m_PrimaryMode;
 
     bool m_BasePlaced = false;
-    
+
     void OnBasePlaced(glm::vec3 position);
     glm::vec3 GetBasePosition() const { return m_BasePosition; }
 
@@ -63,7 +63,7 @@ public:
         return m_CurrentState;
     }
 
-    
+
     void SaveGame();
     void LoadGame();
     void ClearWorld();
@@ -75,7 +75,7 @@ private:
     void Render();
     void Cleanup();
     void ToggleGodMode();
-    
+
 
     int m_Width, m_Height;
     std::string m_Title;
@@ -85,20 +85,20 @@ private:
 
     std::shared_ptr<RenderSystem> m_RenderSystem;
     std::shared_ptr<UISystem> m_UISystem;
-    std::shared_ptr<InputSystem> m_InputSystem; 
+    std::shared_ptr<InputSystem> m_InputSystem;
     std::shared_ptr<ResourceSystem> m_ResourceSystem;
     std::shared_ptr<GridSystem> m_GridSystem;
-    std::shared_ptr<MovementSystem> m_MovementSystem; 
-    std::shared_ptr<EnemyAISystem> m_EnemyAISystem;   
-    std::shared_ptr<BalanceSystem> m_BalanceSystem; 
+    std::shared_ptr<MovementSystem> m_MovementSystem;
+    std::shared_ptr<EnemyAISystem> m_EnemyAISystem;
+    std::shared_ptr<BalanceSystem> m_BalanceSystem;
     std::shared_ptr<CombatSystem> m_CombatSystem;
     std::shared_ptr<ProjectileSystem> m_ProjectileSystem;
     std::shared_ptr<CollisionSystem> m_CollisionSystem;
-    
-    glm::vec3 m_BasePosition = {0,0,0};
+
+    glm::vec3 m_BasePosition = { 0,0,0 };
 
     bool m_IsPanning = false;
-    bool m_IsOrbiting = false; 
+    bool m_IsOrbiting = false;
     double m_LastMouseX = 0.0;
     double m_LastMouseY = 0.0;
 

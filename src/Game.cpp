@@ -183,7 +183,7 @@ void Game::SetAppState(AppState newState) {
 
     if (m_CurrentState == AppState::PLAYING) {
         if (!m_IsGodMode) {
-            glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); 
+            glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
     else {
@@ -228,7 +228,7 @@ void Game::SpawnEnemyAt(glm::vec3 position) {
         glm::vec3{0.12f},
         {0.0f, 0.0f, 0.0f}
         });
-    m_Registry->AddComponent(enemy, RenderComponent{ {0.8f, 0.2f, 0.8f, 1.0f} }); 
+    m_Registry->AddComponent(enemy, RenderComponent{ {0.8f, 0.2f, 0.8f, 1.0f} });
     m_Registry->AddComponent(enemy, MeshComponent{ MeshType::Cube });
     m_Registry->AddComponent(enemy, HealthComponent{ 50, 50 });
     m_Registry->AddComponent(enemy, EnemyComponent{});
@@ -313,7 +313,7 @@ void Game::Init() {
     m_Registry->RegisterComponent<MovementComponent>();
     m_Registry->RegisterComponent<EnemyComponent>();
     m_Registry->RegisterComponent<TurretAIComponent>();
-    m_Registry->RegisterComponent<BombComponent>();    
+    m_Registry->RegisterComponent<BombComponent>();
     m_Registry->RegisterComponent<ProjectileComponent>();
     m_Registry->RegisterComponent<CollisionComponent>();
 
@@ -325,7 +325,7 @@ void Game::Init() {
     m_GridSystem = m_Registry->RegisterSystem<GridSystem>();
     m_MovementSystem = m_Registry->RegisterSystem<MovementSystem>();
     m_EnemyAISystem = m_Registry->RegisterSystem<EnemyAISystem>();
-    m_BalanceSystem = m_Registry->RegisterSystem<BalanceSystem>(); 
+    m_BalanceSystem = m_Registry->RegisterSystem<BalanceSystem>();
     m_CombatSystem = m_Registry->RegisterSystem<CombatSystem>();
     m_ProjectileSystem = m_Registry->RegisterSystem<ProjectileSystem>();
     m_CollisionSystem = m_Registry->RegisterSystem<CollisionSystem>();
@@ -379,19 +379,19 @@ void Game::Init() {
     collisionSig.set(m_Registry->GetComponentTypeID<CollisionComponent>());
     m_Registry->SetSystemSignature<CollisionSystem>(collisionSig);
 
-   
+
     m_RenderSystem->Init();
     m_UISystem->Init(m_Registry.get());
     m_InputSystem->Init(m_Window, m_Registry.get(), this);
     m_GridSystem->Init();
 
-    m_BalanceSystem->Init(); 
+    m_BalanceSystem->Init();
     m_ResourceSystem->Init(m_BalanceSystem.get(), 1000.0);
     m_EnemyAISystem->Init(m_GridSystem.get());
     m_CombatSystem->Init(m_BalanceSystem.get(), m_ResourceSystem.get(), m_GridSystem.get());
-    m_MovementSystem->Init(m_GridSystem.get());
+   // m_MovementSystem->Init(m_GridSystem.get());
 
-    
+
 
     int w, h;
     glfwGetFramebufferSize(m_Window, &w, &h);
@@ -399,7 +399,7 @@ void Game::Init() {
     m_Width = w;
     m_Height = h;
     m_InputSystem->SetWindowSize(w, h);
-    
+
 
     auto grid = m_Registry->CreateEntity();
     m_Registry->AddComponent(grid, TransformComponent{ {0,0,0}, {20,1,20} });
@@ -445,7 +445,7 @@ void Game::ToggleGodMode()
             std::cout << "FREE CAM DEACTIVATED" << std::endl;
         }
     }
-    
+
 }
 
 
@@ -475,7 +475,7 @@ void Game::Run() {
 
         case AppState::MAIN_MENU:
             m_UISystem->Update((float)dt);
-            accumulator = 0.0; 
+            accumulator = 0.0;
             break;
 
         case AppState::PLAYING:
@@ -492,7 +492,7 @@ void Game::Run() {
                     m_CombatSystem->Update((float)dt, m_Registry.get(), enemyEntities, renderableEntities);
                     m_ProjectileSystem->Update((float)dt, m_Registry.get(), enemyEntities);
                 }
-                m_MovementSystem->Update((float)dt, m_Registry.get());
+                m_MovementSystem->Update((float)dt);
                 m_CollisionSystem->Update((float)dt, m_GridSystem.get());
 
                 accumulator -= dt;
@@ -515,7 +515,7 @@ void Game::Run() {
 void Game::ProcessInput(float dt)
 {
     glfwPollEvents();
-    
+
 
     if (m_IsGodMode)
     {

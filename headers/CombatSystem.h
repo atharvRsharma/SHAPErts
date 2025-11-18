@@ -21,7 +21,7 @@ public:
 
     void Update(float dt, ecs::Registry* registry, const std::set<ecs::Entity>& allEnemies, const std::set<ecs::Entity>& allRenderableEntities) {
 
-       
+
         UpdateTurrets(dt, registry, allEnemies);
 
         UpdateEnemies(dt, registry, allEnemies);
@@ -113,7 +113,7 @@ private:
         float turn = std::clamp(diff, -turret.turnSpeed * dt, turret.turnSpeed * dt);
         turretTransform.rotation.y += turn;
 
-        return diff - turn; 
+        return diff - turn; // Return the remaining difference
     }
 
     bool IsTargetInFOV(const TransformComponent& turretTransform, const TransformComponent& targetTransform, const TurretAIComponent& turret) {
@@ -139,13 +139,13 @@ private:
         int err = dx + dy, e2;
 
         while (true) {
-            
+
             if (x0 != startTile.x || y0 != startTile.y) {
                 if (m_GridSystem->IsTileOccupied(x0, y0)) {
                     return false;
                 }
             }
-            if (x0 == x1 && y0 == y1) break; 
+            if (x0 == x1 && y0 == y1) break;
             e2 = 2 * err;
             if (e2 >= dy) { err += dy; x0 += sx; }
             if (e2 <= dx) { err += dx; y0 += sy; }
@@ -161,14 +161,14 @@ private:
 
         registry->AddComponent(bullet, TransformComponent{
             turretPos,
-            {0.15f, 0.05f, 0.05f},
+            {0.2f, 0.2f, 0.2f},
             {0,0,0}
             });
         registry->AddComponent(bullet, RenderComponent{ {1.0f, 0.5f, 0.0f, 1.0f} }); // Orange
         registry->AddComponent(bullet, MeshComponent{ MeshType::Sphere });
 
         glm::vec3 velocity = glm::normalize(targetPos - turretPos) * 15.0f; //15 units per sec
-        registry->AddComponent(bullet, ProjectileComponent{ velocity, 5 }); //4 damage
+        registry->AddComponent(bullet, ProjectileComponent{ velocity, 4 }); //4 damage
     }
 
     void UpdateEnemies(float dt, ecs::Registry* registry, const std::set<ecs::Entity>& allEnemies) {
@@ -222,7 +222,7 @@ private:
     }
 
     void OnEntityDied(ecs::Registry* registry, ecs::Entity entity) {
-        if (!registry->HasComponent<HealthComponent>(entity)) return; 
+        if (!registry->HasComponent<HealthComponent>(entity)) return;
 
         if (registry->HasComponent<EnemyComponent>(entity)) {
             std::cout << "Enemy " << entity << " was destroyed!" << std::endl;
@@ -263,7 +263,7 @@ private:
                 //find all surrounding entities with health and damage em
                 for (ecs::Entity target = 0; target < ecs::MAX_ENTITIES; ++target) {
                     if (!registry->HasComponent<HealthComponent>(target)) continue;
-                    if (target == entity) continue; 
+                    if (target == entity) continue;
 
                     auto& targetT = registry->GetComponent<TransformComponent>(target);
                     if (glm::distance(transform.position, targetT.position) < bomb.blastRadius) {

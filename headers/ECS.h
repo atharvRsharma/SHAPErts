@@ -35,7 +35,7 @@ namespace ecs {
             Entity id = m_AvailableEntities.front();
             m_AvailableEntities.pop();
             ++m_LivingEntityCount;
-            m_LivingEntities.insert(id); 
+            m_LivingEntities.insert(id);
             return id;
         }
 
@@ -69,7 +69,7 @@ namespace ecs {
             m_Signatures[entity].reset();
             m_AvailableEntities.push(entity);
             --m_LivingEntityCount;
-            m_LivingEntities.erase(entity); 
+            m_LivingEntities.erase(entity);
         }
 
         void SetSignature(Entity entity, Signature signature) {
@@ -114,7 +114,7 @@ namespace ecs {
     public:
         virtual ~IComponentArray() = default;
         virtual void EntityDestroyed(Entity entity) = 0;
-        virtual void Reset() = 0; 
+        virtual void Reset() = 0;
     };
 
     template<typename T>
@@ -365,4 +365,4 @@ namespace ecs {
         std::unique_ptr<SystemManager> m_SystemManager;
     };
 
-} 
+}

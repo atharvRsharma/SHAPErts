@@ -115,7 +115,7 @@ private:
             ImGui::Text("Energy Balance");
 
 
-            std::string text = std::to_string((int)m_State.balance * 100) + "%";
+            std::string text = std::to_string((int)(m_State.balance * 100)) + "%";
             ImGui::ProgressBar(m_State.balance, ImVec2(-1.0f, 0.0f), text.c_str());
 
             ImGui::End();

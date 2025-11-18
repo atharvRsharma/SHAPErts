@@ -93,7 +93,7 @@ private:
             finalScale *= 0.5f;
         }
         if (meshComp.type == MeshType::Turret) {
-            finalScale *= 0.45f;
+            finalScale *= 0.3f;
         }
         if (meshComp.type == MeshType::Base) {
             finalScale *= 0.15f;
