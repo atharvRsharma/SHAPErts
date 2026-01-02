@@ -11,7 +11,7 @@ Finally learned project structure, still don't have the strongest grasp ver it(a
 sds
 
 # A lot of drawbacks obviously as I would consider this my very first true game(or atleast a half decent skeleton of one), such as:<br />
-•	Cannot remove building with right mosue click(i know it is a very basic feature, will be implemented in the very near future)<br />
+•	Cannot remove building with right mouse click(i know it is a very basic feature, will be implemented in the very near future)<br />
 •	No instanced rendering(a smidge too advance for me, would love to implement it, however it runs decently for how simple the game is, definitely could optimise it further)<br />
 •	No explicit log manager, everythings logged to the command line which can be a bit tedious to debug<br />
 •	No animations to signal if an actor has been destroyed, they are simply just not rendered to screen and taken out of the registry.  
@@ -25,6 +25,7 @@ combat system but for now, it will be untouched, maybe when more building types 
 •	Mouse scroll for zooming in and out.<br />
 •	Esc key for main menu<br />
 
-# Special commands(cheat codes):<br />
+# Special commands/cheat codes:<br />
 •	Free cam mode: press arrow up, up, down, down, left, right, left, right for a free cam mode to freely move about the scene, reenter the same buffer to snap back to last stable orbit camera postion. When in free cam mode, general wasd controls apply and cursor callback is disabled.
 <br />•	Toggle fullscreen: press left alt+enter to toggle between fullscreen and restored window mode.
+
