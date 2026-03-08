@@ -534,7 +534,7 @@ void Game::ProcessInput(float dt)
     }
 }
 
-void Game::Update(float dt) { /* (not used) */ }
+
 
 void Game::Render() {
     ImGui_ImplOpenGL3_NewFrame();
@@ -543,7 +543,7 @@ void Game::Render() {
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST); // <-- This is totally fine here
+    glEnable(GL_DEPTH_TEST); 
 
     glm::mat4 projection = m_IsGodMode ?
         glm::perspective(glm::radians(45.0f), (float)m_Width / (float)m_Height, 0.1f, 100.0f) :

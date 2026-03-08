@@ -71,7 +71,7 @@ public:
 private:
     void Init();
     void ProcessInput(float dt);
-    void Update(float dt);
+    
     void Render();
     void Cleanup();
     void ToggleGodMode();

@@ -158,7 +158,7 @@
     <ClInclude Include="headers\ResourceSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Serializer.h">
+    <ClInclude Include="headers\Serializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
